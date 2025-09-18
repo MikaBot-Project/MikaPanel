@@ -4,7 +4,6 @@ import (
 	"MikaPanel/config"
 	"encoding/json"
 	"log"
-	"strings"
 )
 
 type MessageItem struct {
@@ -61,19 +60,11 @@ type sendMessageResponse struct {
 }
 
 var httpUrl = config.NapcatHost
-var MessagePluginMap []string
-var CmdPluginMap map[string]string
-var NoticePluginMap map[string][]string
-var MessagePluginFunc func([]byte)
-var CmdPluginFunc func(string, []byte)
-var NoticePluginFunc func([]string, []byte)
+
+var EventChan chan Event
 
 func init() {
-	CmdPluginMap = make(map[string]string)
-	NoticePluginMap = make(map[string][]string)
-	MessagePluginFunc = func([]byte) {}
-	NoticePluginFunc = func([]string, []byte) {}
-	CmdPluginFunc = func(string, []byte) {}
+	EventChan = make(chan Event, 10)
 }
 
 func MessageHandler(data []byte) error {
@@ -83,54 +74,7 @@ func MessageHandler(data []byte) error {
 		log.Println("json:", err)
 		return err
 	}
-	switch event.PostType {
-	case "messages":
-		var cmd []string
-		var isCmd bool
-		for _, msg := range event.MessageArray {
-			if msg.Type == "text" {
-				var text string
-				for _, item := range config.CmdChar {
-					text = msg.Get("text")
-					for len(text) != 0 {
-						if text[0] != ' ' {
-							break
-						}
-						text = text[1:]
-					}
-					if len(text) == 0 {
-						break
-					}
-					cmd = strings.Split(text, item)
-					if cmd[0] == "" {
-						name, ok := CmdPluginMap[cmd[1]]
-						if ok {
-							CmdPluginFunc(name, data)
-							isCmd = true
-						}
-					}
-				}
-				break
-			}
-		}
-		if !isCmd {
-			MessagePluginFunc(data)
-		}
-	case "notice":
-		names, ok := NoticePluginMap[event.NoticeType]
-		if ok {
-			NoticePluginFunc(names, data)
-		}
-	case "request":
-		log.Println("get request")
-	case "meta_event":
-		switch event.MetaEventType {
-		case "lifecycle":
-			log.Println("bot连接成功 ", event.SubType)
-		}
-	default:
-		log.Println(data)
-	}
+	EventChan <- event
 	return nil
 }
 

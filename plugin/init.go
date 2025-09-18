@@ -1,20 +1,29 @@
 package plugin
 
 import (
+	"MikaPanel/config"
 	"MikaPanel/messages"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var pluginLogBufferMap map[string]*bytes.Buffer
 var pluginOutBufferMap map[string]*bytes.Buffer
 var pluginInBufferMap map[string]*bytes.Buffer
 
+var MessagePluginMap []string
+var CmdPluginMap map[string]string
+var NoticePluginMap map[string][]string
+
 func init() {
+	CmdPluginMap = make(map[string]string)
+	NoticePluginMap = make(map[string][]string)
 	dirInfo, err := os.Stat("plugin")
 	if err != nil {
 		log.Println("读取插件文件夹路径信息失败")
@@ -73,29 +82,63 @@ func init() {
 			}
 		}()
 	}
-	messages.MessagePluginFunc = recvMsg
-	messages.CmdPluginFunc = recvCmd
-	messages.NoticePluginFunc = recvNotice
 }
 
-func recvMsg(data []byte) {
-	for _, name := range messages.MessagePluginMap {
-		pluginSend(pluginInBufferMap[name], data)
+func RecvEvent(data messages.Event) {
+	var cmd []string
+	var isCmd bool
+	switch data.MessageType {
+	case "messages":
+		for _, msg := range data.MessageArray {
+			if msg.Type == "text" {
+				var text string
+				for _, item := range config.CmdChar {
+					text = msg.Get("text")
+					for len(text) != 0 {
+						if text[0] != ' ' {
+							break
+						}
+						text = text[1:]
+					}
+					if len(text) == 0 {
+						break
+					}
+					cmd = strings.Split(text, item)
+					if cmd[0] == "" {
+						name, ok := CmdPluginMap[cmd[1]]
+						if ok {
+							pluginSend(pluginInBufferMap[name], data)
+							isCmd = true
+						}
+					}
+				}
+				break
+			}
+		}
+		if !isCmd {
+			for _, name := range MessagePluginMap {
+				pluginSend(pluginInBufferMap[name], data)
+			}
+		}
+	case "notice":
+		for _, name := range NoticePluginMap[data.NoticeType] {
+			pluginSend(pluginOutBufferMap[name], data)
+		}
+	case "request":
+		log.Println("get request")
+	case "meta_event":
+		switch data.MetaEventType {
+		case "lifecycle":
+			log.Println("bot连接成功 ", data.SubType)
+		}
+	default:
+		log.Println(data)
 	}
 }
 
-func recvCmd(plugin string, data []byte) {
-	pluginSend(pluginInBufferMap[plugin], data)
-}
-
-func recvNotice(plugins []string, data []byte) {
-	for _, name := range plugins {
-		pluginSend(pluginOutBufferMap[name], data)
-	}
-}
-
-func pluginSend(writer io.Writer, data []byte) {
-	_, err := writer.Write(data)
+func pluginSend(writer io.Writer, data messages.Event) {
+	marshal, _ := json.Marshal(data)
+	_, err := writer.Write(marshal)
 	if err != nil {
 		log.Println(err)
 		return
