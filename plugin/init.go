@@ -113,7 +113,7 @@ func init() {
 func RecvEvent(data messages.Event) {
 	var cmd []string
 	var isCmd bool
-	switch data.MessageType {
+	switch data.PostType {
 	case "messages":
 		for _, msg := range data.MessageArray {
 			if msg.Type == "text" {

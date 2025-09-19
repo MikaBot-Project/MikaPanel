@@ -89,25 +89,16 @@ func init() {
 			if recv.Status == "ok" {
 				SendRecvMap[recv.Echo] = data
 			} else {
-				err = MessageHandler(data)
+				var event Event
+				err = json.Unmarshal(data, &event)
 				if err != nil {
-					log.Println("json err:", err)
+					log.Println("json:", err)
 					return
 				}
+				EventChan <- event
 			}
 		}
 	}()
-}
-
-func MessageHandler(data []byte) error {
-	var event Event
-	err := json.Unmarshal(data, &event)
-	if err != nil {
-		log.Println("json:", err)
-		return err
-	}
-	EventChan <- event
-	return nil
 }
 
 func GetMsg(MsgId int64) Message {
