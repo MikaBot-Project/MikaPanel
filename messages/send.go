@@ -1,35 +1,50 @@
 package messages
 
 import (
-	"bytes"
+	"MikaPanel/util"
 	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 )
 
-func SendPost(send []byte, api string) (respData []byte) {
-	resp, err := http.Post(httpUrl+api, "application/json", bytes.NewReader(send))
-	if err != nil {
-		log.Println("write:", err)
+type jsonWriter struct {
+	data *[]byte
+}
+
+func (p jsonWriter) Write(b []byte) (n int, err error) {
+	*p.data = append(*p.data, b...)
+	return len(b), nil
+}
+
+func Send(sendParams interface{}, api string) []byte {
+	var data []byte
+	var writer jsonWriter
+	writer.data = &data
+	encoder := json.NewEncoder(writer)
+	encoder.SetEscapeHTML(false)
+	send := struct {
+		Action string      `json:"action"`
+		Params interface{} `json:"params"`
+		Echo   string      `json:"echo"`
+	}{
+		Action: api,
+		Params: sendParams,
+		Echo:   util.RandomString(64),
 	}
-	respData, err = io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
+	_ = encoder.Encode(send)
+	SendChan <- data
+	log.Println(string(data))
+	defer delete(SendRecvMap, send.Echo)
+	var exists = false
+	for !exists {
+		_, exists = SendRecvMap[send.Echo]
 	}
-	log.Println(string(send))
-	return respData
+	return SendRecvMap[send.Echo]
 }
 
 func sendMsg(data any, api string) (messageId int32) {
 	var send []byte
 	var respDataStruct sendMessageResponse
-	var writer jsonWriter
-	writer.data = &send
-	encoder := json.NewEncoder(writer)
-	encoder.SetEscapeHTML(false)
-	_ = encoder.Encode(data)
-	respData := SendPost(send, api)
+	respData := Send(send, api)
 	err := json.Unmarshal(respData, &respDataStruct)
 	if err != nil {
 		return 0
@@ -83,4 +98,21 @@ func SendGroupMessage[T string | []MessageItem](msg T, groupId int64) (messageId
 		Message T     `json:"messages"`
 	}{groupId, msg}
 	return sendMsg(data, "send_group_msg")
+}
+
+func SendPoke(userId, groupId int64) {
+	if groupId == 0 {
+		data := struct {
+			UserId int64 `json:"user_id"`
+		}{userId}
+		send, _ := json.Marshal(data)
+		Send(send, "friend_poke")
+	} else {
+		data := struct {
+			GroupId int64 `json:"group_id"`
+			UserId  int64 `json:"user_id"`
+		}{groupId, userId}
+		send, _ := json.Marshal(data)
+		Send(send, "group_poke")
+	}
 }

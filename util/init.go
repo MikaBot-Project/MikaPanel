@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func Int64ToString(in int64) string {
@@ -77,4 +79,20 @@ func LoadJsonDir[T any](rootPath string, textMap *map[string]T) {
 			(*textMap)[strings.Split(file.Name(), ".json")[0]] = msgMap
 		}
 	}
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+var randomTime = int64(0)
+
+func RandomString(length int) string {
+	for randomTime == time.Now().UnixNano() {
+	}
+	randomTime = time.Now().UnixNano()
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	b := make([]rune, length)
+	for i := range b {
+		b[i] = letters[r.Intn(len(letters))]
+	}
+	return string(b)
 }

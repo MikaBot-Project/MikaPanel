@@ -34,6 +34,6 @@ func pluginRecv(recvData string, name string) {
 			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 3", name))
 			return
 		}
-		messages.SendPost([]byte(data[1]), data[2])
+		messages.Send([]byte(data[1]), data[2])
 	}
 }

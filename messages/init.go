@@ -62,9 +62,41 @@ type sendMessageResponse struct {
 var httpUrl = config.NapcatHost
 
 var EventChan chan Event
+var SendChan chan []byte
+var RecvChan chan []byte
+var SendRecvMap map[string][]byte
 
 func init() {
 	EventChan = make(chan Event, 10)
+	SendChan = make(chan []byte, 10)
+	RecvChan = make(chan []byte, 10)
+	go func() {
+		var data []byte
+		recv := struct {
+			Status string `json:"status"`
+			Echo   string `json:"echo"`
+		}{
+			Status: "event",
+			Echo:   "",
+		}
+		for {
+			data = <-RecvChan
+			err := json.Unmarshal(data, &recv)
+			if err != nil {
+				log.Println("json err:", err)
+				return
+			}
+			if recv.Status == "ok" {
+				SendRecvMap[recv.Echo] = data
+			} else {
+				err = MessageHandler(data)
+				if err != nil {
+					log.Println("json err:", err)
+					return
+				}
+			}
+		}
+	}()
 }
 
 func MessageHandler(data []byte) error {
@@ -78,38 +110,12 @@ func MessageHandler(data []byte) error {
 	return nil
 }
 
-type jsonWriter struct {
-	data *[]byte
-}
-
-func (p jsonWriter) Write(b []byte) (n int, err error) {
-	*p.data = append(*p.data, b...)
-	return len(b), nil
-}
-
-func SendPoke(userId, groupId int64) {
-	if groupId == 0 {
-		data := struct {
-			UserId int64 `json:"user_id"`
-		}{userId}
-		send, _ := json.Marshal(data)
-		SendPost(send, "friend_poke")
-	} else {
-		data := struct {
-			GroupId int64 `json:"group_id"`
-			UserId  int64 `json:"user_id"`
-		}{groupId, userId}
-		send, _ := json.Marshal(data)
-		SendPost(send, "group_poke")
-	}
-}
-
 func GetMsg(MsgId int64) Message {
 	data := struct {
 		MessageId int64 `json:"message_id"`
 	}{MsgId}
 	send, _ := json.Marshal(data)
-	rev := SendPost(send, "get_msg")
+	rev := Send(send, "get_msg")
 	var respDataStruct sendMessageResponse
 	err := json.Unmarshal(rev, &respDataStruct)
 	if err != nil {

@@ -5,25 +5,35 @@ import (
 	"MikaPanel/messages"
 	"log"
 	"net/http"
+
+	"github.com/lxzan/gws"
 )
 
 var Mux *http.ServeMux
+var upgrader *gws.Upgrader
 
 func init() {
 	Mux = http.NewServeMux()
-	Mux.HandleFunc("/onebot/v11/", func(writer http.ResponseWriter, request *http.Request) {
-		bodyLen := request.ContentLength
-		body := make([]byte, bodyLen)
-		_, err := request.Body.Read(body)
+	upgrader = gws.NewUpgrader(&SocketHandler{}, &gws.ServerOption{
+		ParallelEnabled: true,
+		Recovery:        gws.Recovery,
+	})
+	Mux.HandleFunc("/onebot/v11", func(writer http.ResponseWriter, request *http.Request) {
+		conn, err := upgrader.Upgrade(writer, request)
 		if err != nil {
-			log.Println("read post data err:", err)
+			log.Println(err)
 			return
 		}
-		err = messages.MessageHandler(body)
-		if err != nil {
-			return
-		}
-		writer.WriteHeader(http.StatusOK)
+		go func() { // 接收数据
+			conn.ReadLoop()
+		}()
+		go func() { //发送数据
+			var data []byte
+			for {
+				data = <-messages.SendChan
+				_ = conn.WriteMessage(gws.OpcodeText, data)
+			}
+		}()
 	})
 	Mux.Handle("/", http.FileServer(http.Dir("./web")))
 }
