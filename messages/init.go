@@ -4,6 +4,7 @@ import (
 	"MikaPanel/config"
 	"encoding/json"
 	"log"
+	"time"
 )
 
 type MessageItem struct {
@@ -92,6 +93,7 @@ func init() {
 				var event Event
 				err = json.Unmarshal(data, &event)
 				if err != nil {
+					time.Sleep(10 * time.Millisecond)
 					log.Println("json:", err)
 					return
 				}
