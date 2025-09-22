@@ -75,6 +75,7 @@ func init() {
 		var data []byte
 		recv := struct {
 			Status string `json:"status"`
+			Params any    `json:"params"`
 			Echo   string `json:"echo"`
 		}{
 			Status: "event",
@@ -88,6 +89,7 @@ func init() {
 				return
 			}
 			if recv.Status == "ok" {
+				data, _ = json.Marshal(recv.Params)
 				SendRecvMap[recv.Echo] = data
 			} else {
 				var event Event

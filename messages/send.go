@@ -2,35 +2,23 @@ package messages
 
 import (
 	"MikaPanel/util"
+	"bytes"
 	"encoding/json"
 	"log"
 )
 
-type jsonWriter struct {
-	data *[]byte
-}
-
-func (p jsonWriter) Write(b []byte) (n int, err error) {
-	*p.data = append(*p.data, b...)
-	return len(b), nil
-}
-
-func Send(sendParams interface{}, api string) []byte {
-	var data []byte
-	var writer jsonWriter
-	writer.data = &data
-	encoder := json.NewEncoder(writer)
-	encoder.SetEscapeHTML(false)
+func Send(sendParams []byte, api string) []byte {
 	send := struct {
-		Action string      `json:"action"`
-		Params interface{} `json:"params"`
-		Echo   string      `json:"echo"`
+		Action string `json:"action"`
+		Params string `json:"params"`
+		Echo   string `json:"echo"`
 	}{
 		Action: api,
-		Params: sendParams,
+		Params: "p",
 		Echo:   util.RandomString(64),
 	}
-	_ = encoder.Encode(send)
+	data, _ := json.Marshal(send)
+	data = bytes.Replace(data, []byte("\"p\""), sendParams, -1)
 	SendChan <- data
 	log.Println(string(data))
 	defer delete(SendRecvMap, send.Echo)

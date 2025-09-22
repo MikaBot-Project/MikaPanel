@@ -18,7 +18,7 @@ func pluginRecv(recvData string, name string) {
 		for _, item := range data[1:] {
 			log.Println(fmt.Sprintf("[%s] %s", name, item))
 		}
-	case "send_msg":
+	case "send_msg": //send_msg <userId> <groupId> <message> <echo>
 		if dataLen < 5 {
 			log.Println(fmt.Sprintf("[%s] send_msg: args number lass than 5", name))
 			return
@@ -38,26 +38,35 @@ func pluginRecv(recvData string, name string) {
 		}
 		send := intelMessage{
 			PostType:    "return",
-			MessageType: "send_msg",
+			MessageType: fmt.Sprintf("send_msg_%s", data[4]),
 			RawMessage:  string(marshal),
 		}
 		pluginSend(pluginInBufferMap[name], send)
-	case "send_poke":
+	case "send_poke": //send_poke <userId> <groupId>
 		if dataLen < 3 {
 			log.Println(fmt.Sprintf("[%s] send_poke: args number lass than 3", name))
 			return
 		}
 		messages.SendPoke(util.StringToInt64(data[1]), util.StringToInt64(data[2]))
-	case "send_api":
-		if dataLen < 3 {
-			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 3", name))
+	case "send_api": //send_api <api_name> <data> <echo>
+		if dataLen < 4 {
+			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 4", name))
 			return
 		}
 		send := intelMessage{
 			PostType:    "return",
-			MessageType: "send_api",
-			RawMessage:  string(messages.Send([]byte(data[1]), data[2])),
+			MessageType: fmt.Sprintf("send_api_%s", data[3]),
+			RawMessage:  string(messages.Send([]byte(data[2]), data[1])),
 		}
 		pluginSend(pluginInBufferMap[name], send)
+	case "register": //register <type> <args>
+		switch data[1] {
+		case "message":
+			MessagePluginMap = append(MessagePluginMap, name)
+		case "cmd":
+			CmdPluginMap[data[2]] = name
+		case "notice":
+			NoticePluginMap[data[2]] = append(NoticePluginMap[data[2]], name)
+		}
 	}
 }
