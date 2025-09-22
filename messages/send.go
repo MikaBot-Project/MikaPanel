@@ -32,8 +32,12 @@ func Send(sendParams []byte, api string) []byte {
 func sendMsg(data any, api string) (messageId int32) {
 	var send []byte
 	var respDataStruct sendMessageResponse
+	send, err := json.Marshal(data)
+	if err != nil {
+		return 0
+	}
 	respData := Send(send, api)
-	err := json.Unmarshal(respData, &respDataStruct)
+	err = json.Unmarshal(respData, &respDataStruct)
 	if err != nil {
 		return 0
 	}
