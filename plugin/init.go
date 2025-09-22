@@ -74,7 +74,7 @@ func init() {
 				return
 			}
 			// 等待命令完成
-			if err := cmd.Wait(); err != nil {
+			if err = cmd.Wait(); err != nil {
 				// 如果是因为上下文取消而退出，这是预期的
 				if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
 					return

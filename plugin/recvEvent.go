@@ -1,39 +1,32 @@
 package plugin
 
 import (
-	"MikaPanel/config"
 	"MikaPanel/messages"
 	"log"
 	"strings"
 )
 
 func RecvEvent(data messages.Event) {
-	var cmd []string
-	var isCmd bool
 	switch data.PostType {
 	case "messages":
+		var isCmd bool
 		for _, msg := range data.MessageArray {
 			if msg.Type == "text" {
-				var text string
-				for _, item := range config.CmdChar {
-					text = msg.Get("text")
-					for len(text) != 0 {
-						if text[0] != ' ' {
-							break
-						}
-						text = text[1:]
-					}
-					if len(text) == 0 {
+				var text = msg.Get("text")
+				args := strings.Split(text, " ")
+				var cmd string
+				for _, arg := range args {
+					if arg == "" {
+						continue
+					} else {
+						cmd = arg
 						break
 					}
-					cmd = strings.Split(text, item)
-					if cmd[0] == "" {
-						name, ok := CmdPluginMap[cmd[1]]
-						if ok {
-							pluginSend(pluginInBufferMap[name], data)
-							isCmd = true
-						}
-					}
+				}
+				name, ok := CmdPluginMap[cmd]
+				if ok {
+					pluginSend(pluginInBufferMap[name], data)
+					isCmd = true
 				}
 				break
 			}

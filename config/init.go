@@ -8,14 +8,12 @@ import (
 var WebPort = "8080"
 var MysqlHost = "127.0.0.1:3306"
 var NapcatHost = "http://127.0.0.1:8088/"
-var CmdChar []string
 
 func init() {
 	var config = struct {
-		WebPort    string   `json:"webPort"`
-		MysqlHost  string   `json:"mysqlHost"`
-		NapcatHost string   `json:"napcatHost"`
-		CmdChar    []string `json:"cmdChar"`
+		WebPort    string `json:"webPort"`
+		MysqlHost  string `json:"mysqlHost"`
+		NapcatHost string `json:"napcatHost"`
 	}{WebPort: WebPort, MysqlHost: MysqlHost, NapcatHost: NapcatHost}
 	file, err := os.OpenFile("./config/config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
@@ -50,11 +48,6 @@ func init() {
 	err = file.Close()
 	if err != nil {
 		panic(err)
-	}
-	if len(config.CmdChar) == 0 {
-		CmdChar = []string{"#", "＃"}
-	} else {
-		CmdChar = config.CmdChar
 	}
 	WebPort = config.WebPort
 	MysqlHost = config.MysqlHost
