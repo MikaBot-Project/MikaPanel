@@ -15,6 +15,10 @@ func pluginRecv(recvData string, name string) {
 	switch data[0] {
 	case "init":
 		log.Println("plugin ", name, "init")
+		if data[1] != "v0.1.0" {
+			log.Println("plugin ", name, "Mismatch of library version")
+			return
+		}
 		for _, item := range data[1:] {
 			log.Println(fmt.Sprintf("[%s] %s", name, item))
 		}
@@ -41,6 +45,7 @@ func pluginRecv(recvData string, name string) {
 			MessageType: fmt.Sprintf("send_msg_%s", data[4]),
 			RawMessage:  string(marshal),
 		}
+		log.Println("plugin", name, "send msg:", data[3])
 		pluginSend(pluginInBufferMap[name], send)
 	case "send_poke": //send_poke <userId> <groupId>
 		if dataLen < 3 {
@@ -58,14 +63,18 @@ func pluginRecv(recvData string, name string) {
 			MessageType: fmt.Sprintf("send_api_%s", data[3]),
 			RawMessage:  string(messages.Send([]byte(data[2]), data[1])),
 		}
+		log.Println("plugin", name, "send api:", data[2])
 		pluginSend(pluginInBufferMap[name], send)
 	case "register": //register <type> <args>
 		switch data[1] {
 		case "message":
+			log.Println(name, "register message")
 			MessagePluginMap = append(MessagePluginMap, name)
 		case "cmd":
+			log.Println(name, "register cmd", data[2])
 			CmdPluginMap[data[2]] = name
 		case "notice":
+			log.Println(name, "register notice", data[2])
 			NoticePluginMap[data[2]] = append(NoticePluginMap[data[2]], name)
 		}
 	}

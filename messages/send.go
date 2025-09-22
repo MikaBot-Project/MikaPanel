@@ -21,12 +21,12 @@ func Send(sendParams []byte, api string) []byte {
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, -1)
 	SendChan <- data
 	log.Println(string(data))
-	defer delete(SendRecvMap, send.Echo)
+	defer delete(sendRecvMap, send.Echo)
 	var exists = false
 	for !exists {
-		_, exists = SendRecvMap[send.Echo]
+		_, exists = sendRecvMap[send.Echo]
 	}
-	return SendRecvMap[send.Echo]
+	return sendRecvMap[send.Echo]
 }
 
 func sendMsg(data any, api string) (messageId int32) {

@@ -1,7 +1,6 @@
 package messages
 
 import (
-	"MikaPanel/config"
 	"encoding/json"
 	"log"
 	"time"
@@ -60,12 +59,10 @@ type sendMessageResponse struct {
 	Data    Message `json:"data"`
 }
 
-var httpUrl = config.NapcatHost
-
 var EventChan chan Event
 var SendChan chan []byte
 var RecvChan chan []byte
-var SendRecvMap map[string][]byte
+var sendRecvMap map[string][]byte
 
 func init() {
 	EventChan = make(chan Event, 10)
@@ -90,7 +87,7 @@ func init() {
 			}
 			if recv.Status == "ok" {
 				data, _ = json.Marshal(recv.Params)
-				SendRecvMap[recv.Echo] = data
+				sendRecvMap[recv.Echo] = data
 			} else {
 				var event Event
 				err = json.Unmarshal(data, &event)

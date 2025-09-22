@@ -25,6 +25,8 @@ func RecvEvent(data messages.Event) {
 				}
 				name, ok := CmdPluginMap[cmd]
 				if ok {
+					data.PostType = "command"
+					data.MetaEventType = name
 					pluginSend(pluginInBufferMap[name], data)
 					isCmd = true
 				}
