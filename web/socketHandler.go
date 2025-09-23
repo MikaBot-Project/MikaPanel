@@ -10,7 +10,7 @@ import (
 
 const (
 	PingInterval = 5 * time.Second
-	PingWait     = 10 * time.Second
+	PingWait     = 100 * time.Second
 )
 
 type SocketHandler struct{}
@@ -19,11 +19,15 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 	_ = socket.SetDeadline(time.Now().Add(PingInterval + PingWait))
 }
 
-func (c *SocketHandler) OnClose(socket *gws.Conn, err error) {}
+func (c *SocketHandler) OnClose(socket *gws.Conn, err error) {
+	log.Println("websocket close")
+	log.Println(err)
+}
 
 func (c *SocketHandler) OnPing(socket *gws.Conn, payload []byte) {
+	log.Println("websocket ping")
 	_ = socket.SetDeadline(time.Now().Add(PingInterval + PingWait))
-	_ = socket.WritePong(nil)
+	_ = socket.WritePong(payload)
 }
 
 func (c *SocketHandler) OnPong(socket *gws.Conn, payload []byte) {}
@@ -35,7 +39,10 @@ func (c *SocketHandler) OnMessage(socket *gws.Conn, message *gws.Message) {
 			log.Println(err)
 		}
 	}(message)
-	if message.Opcode == gws.OpcodeText {
+	switch message.Opcode {
+	case gws.OpcodeText:
 		messages.RecvChan <- message.Bytes()
+	case gws.OpcodePing:
+		c.OnPing(socket, message.Bytes())
 	}
 }

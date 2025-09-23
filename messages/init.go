@@ -3,7 +3,6 @@ package messages
 import (
 	"encoding/json"
 	"log"
-	"time"
 )
 
 type MessageItem struct {
@@ -34,7 +33,7 @@ type Event struct {
 	MessageType   string        `json:"message_type"`
 	SubType       string        `json:"sub_type"`
 	MessageId     int64         `json:"message_id"`
-	MessageArray  []MessageItem `json:"messages"`
+	MessageArray  []MessageItem `json:"message"`
 	RawMessage    string        `json:"raw_message"`
 	NoticeType    string        `json:"notice_type"`
 	TargetId      int64         `json:"target_id"`
@@ -49,14 +48,16 @@ type Message struct {
 	MessageType  string        `json:"message_type"`
 	SubType      string        `json:"sub_type"`
 	MessageId    int64         `json:"message_id"`
-	MessageArray []MessageItem `json:"messages"`
+	MessageArray []MessageItem `json:"message"`
 	RawMessage   string        `json:"raw_message"`
 }
 
 type sendMessageResponse struct {
-	Status  string  `json:"status"`
-	Retcode int     `json:"retcode"`
-	Data    Message `json:"data"`
+	Status  string `json:"status"`
+	Retcode int    `json:"retcode"`
+	Data    struct {
+		MessageId int64 `json:"message_id"`
+	} `json:"data"`
 }
 
 var EventChan chan Event
@@ -68,11 +69,11 @@ func init() {
 	EventChan = make(chan Event, 10)
 	SendChan = make(chan []byte, 10)
 	RecvChan = make(chan []byte, 10)
+	sendRecvMap = make(map[string][]byte)
 	go func() {
 		var data []byte
 		recv := struct {
-			Status string `json:"status"`
-			Params any    `json:"params"`
+			Status any    `json:"status"`
 			Echo   string `json:"echo"`
 		}{
 			Status: "event",
@@ -83,37 +84,30 @@ func init() {
 			err := json.Unmarshal(data, &recv)
 			if err != nil {
 				log.Println("json err:", err)
-				return
+				continue
 			}
-			if recv.Status == "ok" {
-				data, _ = json.Marshal(recv.Params)
-				sendRecvMap[recv.Echo] = data
-			} else {
+			switch recv.Status.(type) {
+			case string:
+				if recv.Status.(string) == "ok" {
+					sendRecvMap[recv.Echo] = data
+				} else {
+					var event Event
+					err = json.Unmarshal(data, &event)
+					if err != nil {
+						log.Println("json:", err)
+						continue
+					}
+					EventChan <- event
+				}
+			default:
 				var event Event
 				err = json.Unmarshal(data, &event)
 				if err != nil {
-					time.Sleep(10 * time.Millisecond)
 					log.Println("json:", err)
-					return
+					continue
 				}
 				EventChan <- event
 			}
 		}
 	}()
-}
-
-func GetMsg(MsgId int64) Message {
-	data := struct {
-		MessageId int64 `json:"message_id"`
-	}{MsgId}
-	send, _ := json.Marshal(data)
-	rev := Send(send, "get_msg")
-	var respDataStruct sendMessageResponse
-	err := json.Unmarshal(rev, &respDataStruct)
-	if err != nil {
-		log.Println("GetMsg json err", err)
-		log.Println(string(rev))
-		return Message{}
-	}
-	return respDataStruct.Data
 }

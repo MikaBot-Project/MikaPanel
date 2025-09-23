@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	web.Start()
+	go web.Start()
 	var data messages.Event
 	for {
 		data = <-messages.EventChan

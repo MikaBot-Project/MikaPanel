@@ -10,16 +10,16 @@ type pluginTactics struct {
 	Groups []string `json:"groups"`
 }
 
-var WebPort = "8080"
+var Host = "127.0.0.1:8080"
 var MysqlHost = "127.0.0.1:3306"
 var Tactics map[string]pluginTactics
 
 func init() {
 	var config = struct {
-		WebPort   string                   `json:"webPort"`
+		Host      string                   `json:"host"`
 		MysqlHost string                   `json:"mysqlHost"`
 		Tactics   map[string]pluginTactics `json:"tactics"`
-	}{WebPort: WebPort, MysqlHost: MysqlHost}
+	}{Host: Host, MysqlHost: MysqlHost}
 	file, err := os.OpenFile("./config/config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		panic(err)
@@ -54,7 +54,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	WebPort = config.WebPort
+	Host = config.Host
 	MysqlHost = config.MysqlHost
 	Tactics = config.Tactics
 }

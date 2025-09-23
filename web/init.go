@@ -34,13 +34,14 @@ func init() {
 				_ = conn.WriteMessage(gws.OpcodeText, data)
 			}
 		}()
+		log.Println("websocket upgrade success")
 	})
 	Mux.Handle("/", http.FileServer(http.Dir("./web")))
 }
 
 func Start() {
 	server := &http.Server{
-		Addr:    ":" + config.WebPort,
+		Addr:    config.Host,
 		Handler: Mux,
 	}
 	err := server.ListenAndServe()

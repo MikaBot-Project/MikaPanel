@@ -8,7 +8,7 @@ import (
 
 func RecvEvent(data messages.Event) {
 	switch data.PostType {
-	case "messages":
+	case "message":
 		var isCmd bool
 		for _, msg := range data.MessageArray {
 			if msg.Type == "text" {
@@ -25,8 +25,9 @@ func RecvEvent(data messages.Event) {
 				}
 				name, ok := CmdPluginMap[cmd]
 				if ok {
+					log.Println("get cmd " + cmd + " from plugin")
 					data.PostType = "command"
-					data.MetaEventType = name
+					data.MetaEventType = cmd
 					pluginSend(pluginInBufferMap[name], data)
 					isCmd = true
 				}
@@ -40,6 +41,7 @@ func RecvEvent(data messages.Event) {
 		}
 	case "notice":
 		for _, name := range NoticePluginMap[data.NoticeType] {
+			log.Println("notice", data.NoticeType, data.SubType, name)
 			pluginSend(pluginInBufferMap[name], data)
 		}
 	case "request":

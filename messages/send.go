@@ -4,7 +4,7 @@ import (
 	"MikaPanel/util"
 	"bytes"
 	"encoding/json"
-	"log"
+	"time"
 )
 
 func Send(sendParams []byte, api string) []byte {
@@ -20,10 +20,10 @@ func Send(sendParams []byte, api string) []byte {
 	data, _ := json.Marshal(send)
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, -1)
 	SendChan <- data
-	log.Println(string(data))
 	defer delete(sendRecvMap, send.Echo)
 	var exists = false
 	for !exists {
+		time.Sleep(1 * time.Second)
 		_, exists = sendRecvMap[send.Echo]
 	}
 	return sendRecvMap[send.Echo]
@@ -31,12 +31,12 @@ func Send(sendParams []byte, api string) []byte {
 
 func sendMsg(data any, api string) (messageId int32) {
 	var send []byte
-	var respDataStruct sendMessageResponse
 	send, err := json.Marshal(data)
 	if err != nil {
 		return 0
 	}
 	respData := Send(send, api)
+	var respDataStruct sendMessageResponse
 	err = json.Unmarshal(respData, &respDataStruct)
 	if err != nil {
 		return 0
@@ -79,7 +79,7 @@ func sendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (
 func SendPrivateMessage[T string | []MessageItem](msg T, userId int64) (messageId int32) {
 	data := struct {
 		UserId  int64 `json:"user_id"`
-		Message T     `json:"messages"`
+		Message T     `json:"message"`
 	}{userId, msg}
 	return sendMsg(data, "send_private_msg")
 }
@@ -87,7 +87,7 @@ func SendPrivateMessage[T string | []MessageItem](msg T, userId int64) (messageI
 func SendGroupMessage[T string | []MessageItem](msg T, groupId int64) (messageId int32) {
 	data := struct {
 		GroupId int64 `json:"group_id"`
-		Message T     `json:"messages"`
+		Message T     `json:"message"`
 	}{groupId, msg}
 	return sendMsg(data, "send_group_msg")
 }

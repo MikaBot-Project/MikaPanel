@@ -42,7 +42,7 @@ func pluginRecv(recvData string, name string) {
 		}
 		send := intelMessage{
 			PostType:    "return",
-			MessageType: fmt.Sprintf("send_msg_%s", data[4]),
+			MessageType: data[4],
 			RawMessage:  string(marshal),
 		}
 		log.Println("plugin", name, "send msg:", data[3])
@@ -60,10 +60,9 @@ func pluginRecv(recvData string, name string) {
 		}
 		send := intelMessage{
 			PostType:    "return",
-			MessageType: fmt.Sprintf("send_api_%s", data[3]),
+			MessageType: data[3],
 			RawMessage:  string(messages.Send([]byte(data[2]), data[1])),
 		}
-		log.Println("plugin", name, "send api:", data[2])
 		pluginSend(pluginInBufferMap[name], send)
 	case "register": //register <type> <args>
 		switch data[1] {
