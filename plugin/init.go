@@ -64,7 +64,7 @@ func init() {
 			// 创建可取消的上下文
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			cmd := exec.CommandContext(ctx, "./plugin/"+file.Name(), "config/"+file.Name())
+			cmd := exec.CommandContext(ctx, "./plugin/"+file.Name(), "./config/"+file.Name()+"/")
 			cmd.Stdout = outWriter
 			cmd.Stderr = logWriters
 			cmd.Stdin = inReader
@@ -79,7 +79,7 @@ func init() {
 				if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
 					return
 				}
-				panic(err)
+				log.Println(file.Name(), err)
 			}
 		}()
 	}

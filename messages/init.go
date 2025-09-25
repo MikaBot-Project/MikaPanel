@@ -38,6 +38,8 @@ type Event struct {
 	NoticeType    string        `json:"notice_type"`
 	TargetId      int64         `json:"target_id"`
 	MetaEventType string        `json:"meta_event_type"`
+	AtMe          bool          `json:"at_me"`
+	CommandArgs   []string      `json:"command_args"`
 }
 
 type Message struct {

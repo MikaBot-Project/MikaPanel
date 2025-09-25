@@ -2,7 +2,6 @@ package web
 
 import (
 	"MikaPanel/config"
-	"MikaPanel/messages"
 	"log"
 	"net/http"
 
@@ -26,13 +25,6 @@ func init() {
 		}
 		go func() { // 接收数据
 			conn.ReadLoop()
-		}()
-		go func() { //发送数据
-			var data []byte
-			for {
-				data = <-messages.SendChan
-				_ = conn.WriteMessage(gws.OpcodeText, data)
-			}
 		}()
 		log.Println("websocket upgrade success")
 	})

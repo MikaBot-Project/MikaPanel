@@ -15,8 +15,8 @@ func pluginRecv(recvData string, name string) {
 	switch data[0] {
 	case "init":
 		log.Println("plugin ", name, "init")
-		if data[1] != "v0.1.0" {
-			log.Println("plugin ", name, "Mismatch of library version")
+		if data[1] != "v1" {
+			log.Println("Warning: plugin ", name, "Mismatch of library version")
 			return
 		}
 		for _, item := range data[1:] {

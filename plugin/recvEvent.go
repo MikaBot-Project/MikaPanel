@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"MikaPanel/messages"
+	"MikaPanel/util"
 	"log"
 	"strings"
 )
@@ -9,16 +10,19 @@ import (
 func RecvEvent(data messages.Event) {
 	switch data.PostType {
 	case "message":
+		data.AtMe = false
 		var isCmd bool
 		for _, msg := range data.MessageArray {
-			if msg.Type == "text" {
+			switch msg.Type {
+			case "text":
 				var text = msg.Get("text")
 				args := strings.Split(text, " ")
 				var cmd string
-				for _, arg := range args {
+				for key, arg := range args {
 					if arg == "" {
 						continue
 					} else {
+						args = args[key:]
 						cmd = arg
 						break
 					}
@@ -27,11 +31,15 @@ func RecvEvent(data messages.Event) {
 				if ok {
 					log.Println("get cmd " + cmd + " from plugin")
 					data.PostType = "command"
-					data.MetaEventType = cmd
+					data.CommandArgs = args
 					pluginSend(pluginInBufferMap[name], data)
 					isCmd = true
 				}
-				break
+			case "at":
+				var at = msg.Get("qq")
+				if data.SelfId == util.StringToInt64(at) {
+					data.AtMe = true
+				}
 			}
 		}
 		if !isCmd {
@@ -50,6 +58,8 @@ func RecvEvent(data messages.Event) {
 		switch data.MetaEventType {
 		case "lifecycle":
 			log.Println("bot连接成功 ", data.SubType)
+		case "heartbeat":
+
 		}
 	default:
 		log.Println(data)
