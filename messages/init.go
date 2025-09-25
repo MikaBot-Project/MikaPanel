@@ -85,27 +85,40 @@ func init() {
 			data = <-RecvChan
 			err := json.Unmarshal(data, &recv)
 			if err != nil {
-				log.Println("json err:", err)
+				log.Println("data recv:", err)
 				continue
 			}
 			switch recv.Status.(type) {
 			case string:
-				if recv.Status.(string) == "ok" {
-					sendRecvMap[recv.Echo] = data
-				} else {
+				switch recv.Status.(string) {
+				case "event":
 					var event Event
 					err = json.Unmarshal(data, &event)
 					if err != nil {
-						log.Println("json:", err)
+						log.Println("data recv:", err)
 						continue
 					}
 					EventChan <- event
+				case "ok":
+					sendRecvMap[recv.Echo] = data
+				default:
+					returnMsg := struct {
+						Message string `json:"status"`
+					}{}
+					err = json.Unmarshal(data, &returnMsg)
+					if err != nil {
+						log.Println("data recv:", err)
+						return
+					}
+					log.Println("return Status:", recv.Status)
+					log.Println("return Msg:", returnMsg.Message)
+					sendRecvMap[recv.Echo] = data
 				}
 			default:
 				var event Event
 				err = json.Unmarshal(data, &event)
 				if err != nil {
-					log.Println("json:", err)
+					log.Println("data recv:", err)
 					continue
 				}
 				EventChan <- event

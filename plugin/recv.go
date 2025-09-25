@@ -52,7 +52,8 @@ func pluginRecv(recvData string, name string) {
 			log.Println(fmt.Sprintf("[%s] send_poke: args number lass than 3", name))
 			return
 		}
-		messages.SendPoke(util.StringToInt64(data[1]), util.StringToInt64(data[2]))
+		log.Println("plugin", name, "send poke:", data[1], data[2])
+		messages.SendPoke(data[1], data[2])
 	case "send_api": //send_api <api_name> <data> <echo>
 		if dataLen < 4 {
 			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 4", name))

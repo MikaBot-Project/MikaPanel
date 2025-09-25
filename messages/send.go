@@ -18,7 +18,7 @@ func Send(sendParams []byte, api string) []byte {
 		Echo:   util.RandomString(64),
 	}
 	data, _ := json.Marshal(send)
-	data = bytes.Replace(data, []byte("\"p\""), sendParams, -1)
+	data = bytes.Replace(data, []byte("\"p\""), sendParams, 1)
 	SendChan <- data
 	defer delete(sendRecvMap, send.Echo)
 	var exists = false
@@ -92,17 +92,18 @@ func SendGroupMessage[T string | []MessageItem](msg T, groupId int64) (messageId
 	return sendMsg(data, "send_group_msg")
 }
 
-func SendPoke(userId, groupId int64) {
-	if groupId == 0 {
+func SendPoke(userId, groupId string) {
+	if groupId == "0" {
 		data := struct {
-			UserId int64 `json:"user_id"`
-		}{userId}
+			UserId   string `json:"user_id"`
+			TargetId string `json:"target_id"`
+		}{userId, userId}
 		send, _ := json.Marshal(data)
 		Send(send, "friend_poke")
 	} else {
 		data := struct {
-			GroupId int64 `json:"group_id"`
-			UserId  int64 `json:"user_id"`
+			GroupId string `json:"group_id"`
+			UserId  string `json:"user_id"`
 		}{groupId, userId}
 		send, _ := json.Marshal(data)
 		Send(send, "group_poke")
