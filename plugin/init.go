@@ -13,8 +13,6 @@ import (
 	"sync"
 )
 
-var pluginLogBufferMap map[string]*bufio.Reader
-var pluginOutBufferMap map[string]*bufio.Reader
 var pluginInBufferMap map[string]*bufio.Writer
 var pluginInMutexMap map[string]*sync.Mutex
 
@@ -32,8 +30,6 @@ func init() {
 	log.SetPrefix("[main] ")
 	CmdPluginMap = make(map[string]string)
 	NoticePluginMap = make(map[string][]string)
-	pluginLogBufferMap = make(map[string]*bufio.Reader)
-	pluginOutBufferMap = make(map[string]*bufio.Reader)
 	pluginInBufferMap = make(map[string]*bufio.Writer)
 	pluginInMutexMap = make(map[string]*sync.Mutex)
 	dirInfo, err := os.Stat("plugin")
@@ -60,9 +56,10 @@ func init() {
 			inReader, inWriter := io.Pipe()
 			outReader, outWriter := io.Pipe()
 			logReader, logWriter := io.Pipe()
-			pluginLogBufferMap[file.Name()] = bufio.NewReader(logReader)
-			pluginOutBufferMap[file.Name()] = bufio.NewReader(outReader)
-			pluginInBufferMap[file.Name()] = bufio.NewWriter(inWriter)
+			logBuffer := bufio.NewReader(logReader)
+			outBuffer := bufio.NewReader(outReader)
+			name := file.Name()
+			pluginInBufferMap[name] = bufio.NewWriter(inWriter)
 			pluginInMutexMap[file.Name()] = new(sync.Mutex)
 			logWriters := io.MultiWriter(logFile, logWriter)
 			// 创建可取消的上下文
@@ -77,6 +74,24 @@ func init() {
 				log.Println(runErr)
 				return
 			}
+			go func() { //log线程
+				for {
+					line, _ := logBuffer.ReadString('\n')
+					if len(line) == 0 {
+						continue
+					}
+					fmt.Print("[", name, "] ", line)
+				}
+			}()
+			go func() { //读取输出
+				for {
+					line, _ := outBuffer.ReadString('\n')
+					if len(line) == 0 {
+						continue
+					}
+					go pluginRecv(line, name)
+				}
+			}()
 			// 等待命令完成
 			if err = cmd.Wait(); err != nil {
 				// 如果是因为上下文取消而退出，这是预期的
@@ -87,28 +102,6 @@ func init() {
 			}
 		}()
 	}
-	go func() { //log线程
-		for {
-			for name, buf := range pluginLogBufferMap {
-				line, _ := buf.ReadString('\n')
-				if len(line) == 0 {
-					continue
-				}
-				fmt.Print("[", name, "] ", line)
-			}
-		}
-	}()
-	go func() { //读取输出
-		for {
-			for name, buf := range pluginOutBufferMap {
-				line, _ := buf.ReadString('\n')
-				if len(line) == 0 {
-					continue
-				}
-				go pluginRecv(line, name)
-			}
-		}
-	}()
 }
 
 func SendEcho(name, text string) {

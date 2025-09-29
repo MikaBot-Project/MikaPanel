@@ -49,6 +49,7 @@ func RecvEvent(data messages.Event) {
 		if !isCmd {
 			for _, name := range MessagePluginMap {
 				if pluginPolicyCheck(name, int(data.GroupId)) {
+					log.Println("plugin " + name + " get msg")
 					pluginSend(name, data)
 				}
 			}
