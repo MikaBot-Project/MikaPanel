@@ -10,11 +10,13 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync"
 )
 
 var pluginLogBufferMap map[string]*bufio.Reader
 var pluginOutBufferMap map[string]*bufio.Reader
 var pluginInBufferMap map[string]*bufio.Writer
+var pluginInMutexMap map[string]*sync.Mutex
 
 var MessagePluginMap []string
 var CmdPluginMap map[string]string
@@ -33,6 +35,7 @@ func init() {
 	pluginLogBufferMap = make(map[string]*bufio.Reader)
 	pluginOutBufferMap = make(map[string]*bufio.Reader)
 	pluginInBufferMap = make(map[string]*bufio.Writer)
+	pluginInMutexMap = make(map[string]*sync.Mutex)
 	dirInfo, err := os.Stat("plugin")
 	if err != nil {
 		log.Println("读取插件文件夹路径信息失败")
@@ -60,6 +63,7 @@ func init() {
 			pluginLogBufferMap[file.Name()] = bufio.NewReader(logReader)
 			pluginOutBufferMap[file.Name()] = bufio.NewReader(outReader)
 			pluginInBufferMap[file.Name()] = bufio.NewWriter(inWriter)
+			pluginInMutexMap[file.Name()] = new(sync.Mutex)
 			logWriters := io.MultiWriter(logFile, logWriter)
 			// 创建可取消的上下文
 			ctx, cancel := context.WithCancel(context.Background())
@@ -113,11 +117,15 @@ func SendEcho(name, text string) {
 		MessageType: "echo",
 		RawMessage:  text,
 	}
-	pluginSend(pluginInBufferMap[name], data)
+	pluginSend(name, data)
 }
 
-func pluginSend(writer *bufio.Writer, data interface{}) {
+func pluginSend(name string, data interface{}) {
 	marshal, _ := json.Marshal(data)
+	mutex := pluginInMutexMap[name]
+	mutex.Lock()
+	defer mutex.Unlock()
+	var writer = pluginInBufferMap[name]
 	_, err := writer.Write(marshal)
 	if err != nil {
 		log.Println(err)

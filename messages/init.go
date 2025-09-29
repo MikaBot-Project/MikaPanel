@@ -90,6 +90,7 @@ func init() {
 		}
 		for {
 			data = <-RecvChan
+			recv.Status = "event"
 			err := json.Unmarshal(data, &recv)
 			if err != nil {
 				log.Println("data recv:", err)

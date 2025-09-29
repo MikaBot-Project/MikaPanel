@@ -35,7 +35,7 @@ func RecvEvent(data messages.Event) {
 					data.PostType = "command"
 					data.CommandArgs = args
 					if pluginPolicyCheck(name, int(data.GroupId)) {
-						pluginSend(pluginInBufferMap[name], data)
+						pluginSend(name, data)
 					}
 					isCmd = true
 				}
@@ -49,7 +49,7 @@ func RecvEvent(data messages.Event) {
 		if !isCmd {
 			for _, name := range MessagePluginMap {
 				if pluginPolicyCheck(name, int(data.GroupId)) {
-					pluginSend(pluginInBufferMap[name], data)
+					pluginSend(name, data)
 				}
 			}
 		}
@@ -57,7 +57,7 @@ func RecvEvent(data messages.Event) {
 		for _, name := range NoticePluginMap[data.NoticeType] {
 			log.Println("notice", data.NoticeType, data.SubType, name)
 			if pluginPolicyCheck(name, int(data.GroupId)) {
-				pluginSend(pluginInBufferMap[name], data)
+				pluginSend(name, data)
 			}
 		}
 	case "request":

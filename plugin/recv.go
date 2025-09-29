@@ -73,8 +73,8 @@ func pluginRecv(recvData string, name string) {
 func sendPluginResp(name, data, echo string) {
 	send := intelMessage{
 		PostType:    "return",
-		MessageType: data,
-		RawMessage:  echo,
+		MessageType: echo,
+		RawMessage:  data,
 	}
-	pluginSend(pluginInBufferMap[name], send)
+	pluginSend(name, send)
 }
