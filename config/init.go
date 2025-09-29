@@ -3,22 +3,24 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"sort"
 )
 
-type pluginTactics struct {
-	Type   string   `json:"type"`
-	Groups []string `json:"groups"`
+type pluginPolicy struct {
+	Type      string `json:"type"`
+	GroupOnly bool   `json:"group_only"`
+	Groups    []int  `json:"groups"`
 }
 
 var Host = "127.0.0.1:8080"
 var MysqlHost = "127.0.0.1:3306"
-var Tactics map[string]pluginTactics
+var Policies map[string]pluginPolicy
 
 func init() {
 	var config = struct {
-		Host      string                   `json:"host"`
-		MysqlHost string                   `json:"mysqlHost"`
-		Tactics   map[string]pluginTactics `json:"tactics"`
+		Host      string                  `json:"host"`
+		MysqlHost string                  `json:"mysqlHost"`
+		Policies  map[string]pluginPolicy `json:"policies"`
 	}{Host: Host, MysqlHost: MysqlHost}
 	file, err := os.OpenFile("./config/config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
@@ -56,5 +58,8 @@ func init() {
 	}
 	Host = config.Host
 	MysqlHost = config.MysqlHost
-	Tactics = config.Tactics
+	Policies = config.Policies
+	for _, policy := range config.Policies {
+		sort.Ints(policy.Groups)
+	}
 }

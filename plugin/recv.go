@@ -40,13 +40,8 @@ func pluginRecv(recvData string, name string) {
 			log.Println("json err:", err)
 			return
 		}
-		send := intelMessage{
-			PostType:    "return",
-			MessageType: data[4],
-			RawMessage:  string(marshal),
-		}
 		log.Println("plugin", name, "send msg:", data[3])
-		pluginSend(pluginInBufferMap[name], send)
+		sendPluginResp(name, string(marshal), data[4])
 	case "send_poke": //send_poke <userId> <groupId>
 		if dataLen < 3 {
 			log.Println(fmt.Sprintf("[%s] send_poke: args number lass than 3", name))
@@ -59,12 +54,7 @@ func pluginRecv(recvData string, name string) {
 			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 4", name))
 			return
 		}
-		send := intelMessage{
-			PostType:    "return",
-			MessageType: data[3],
-			RawMessage:  string(messages.Send([]byte(data[2]), data[1])),
-		}
-		pluginSend(pluginInBufferMap[name], send)
+		sendPluginResp(name, string(messages.Send([]byte(data[2]), data[1])), data[3])
 	case "register": //register <type> <args>
 		switch data[1] {
 		case "message":
@@ -78,4 +68,13 @@ func pluginRecv(recvData string, name string) {
 			NoticePluginMap[data[2]] = append(NoticePluginMap[data[2]], name)
 		}
 	}
+}
+
+func sendPluginResp(name, data, echo string) {
+	send := intelMessage{
+		PostType:    "return",
+		MessageType: data,
+		RawMessage:  echo,
+	}
+	pluginSend(pluginInBufferMap[name], send)
 }
