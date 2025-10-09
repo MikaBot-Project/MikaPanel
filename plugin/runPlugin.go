@@ -35,7 +35,8 @@ func runPlugin(ctx context.Context, name string) {
 	pluginInBufferMap[name] = bufio.NewWriter(inWriter)
 	pluginInMutexMap[name] = new(sync.Mutex)
 	logWriters := io.MultiWriter(logFile, logWriter)
-	cmd := exec.CommandContext(ctx, "./plugin/"+name, "./config/"+name+"/")
+	cmdArgs := []string{"./plugin/" + name, "./config/" + name + "/", "./data/" + name + "/"}
+	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Stdout = outWriter
 	cmd.Stderr = logWriters
 	cmd.Stdin = inReader
@@ -80,7 +81,7 @@ func runPlugin(ctx context.Context, name string) {
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
 				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
-				cmd = exec.CommandContext(ctx, "./plugin/"+name, "./config/"+name+"/")
+				cmd = exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters
 				cmd.Stdin = inReader
@@ -97,7 +98,7 @@ func runPlugin(ctx context.Context, name string) {
 				unRegister(name)
 				cancel()
 				time.Sleep(2 * time.Second)
-				cmd = exec.CommandContext(ctx, "./plugin/"+name, "./config/"+name+"/")
+				cmd = exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters
 				cmd.Stdin = inReader

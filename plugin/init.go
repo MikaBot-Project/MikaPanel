@@ -67,6 +67,8 @@ func init() {
 	go func() {
 		<-sigChan
 		cancel()
+		log.Println("All plugin exit")
+		os.Exit(0)
 	}()
 	for _, file := range files { //启动插件线程
 		go func() {
