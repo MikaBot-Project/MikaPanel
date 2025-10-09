@@ -24,6 +24,7 @@ type intelMessage struct {
 	PostType    string `json:"post_type"`
 	MessageType string `json:"message_type"`
 	RawMessage  string `json:"raw_message"`
+	SubType     string `json:"sub_type"`
 }
 
 func init() {
@@ -50,13 +51,17 @@ func init() {
 	if err != nil {
 		return
 	}
+	err = os.MkdirAll("log", 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, file := range files { //启动插件线程
 		go func() {
 			logFile, _ := os.OpenFile(fmt.Sprintf("log/%s.log", file.Name()), os.O_CREATE|os.O_WRONLY, os.ModePerm)
 			inReader, inWriter := io.Pipe()
 			outReader, outWriter := io.Pipe()
 			logReader, logWriter := io.Pipe()
-			logBuffer := bufio.NewReader(logReader)
+			logOutBuffer := bufio.NewReader(logReader)
 			outBuffer := bufio.NewReader(outReader)
 			name := file.Name()
 			pluginInBufferMap[name] = bufio.NewWriter(inWriter)
@@ -76,7 +81,7 @@ func init() {
 			}
 			go func() { //log线程
 				for {
-					line, _ := logBuffer.ReadString('\n')
+					line, _ := logOutBuffer.ReadString('\n')
 					if len(line) == 0 {
 						continue
 					}
@@ -133,4 +138,13 @@ func pluginSend(name string, data interface{}) {
 	if err != nil {
 		return
 	}
+}
+
+func PluginConfigReload(name string) {
+	data := intelMessage{
+		PostType:    "operator",
+		MessageType: "config",
+		SubType:     "reload",
+	}
+	pluginSend(name, data)
 }
