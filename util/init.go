@@ -28,7 +28,7 @@ func StringToInt64(in string) int64 {
 func StringToInt(in string) int {
 	out, err := strconv.ParseInt(in, 10, 32)
 	if err != nil {
-		log.Fatal("String To Int64:", err)
+		log.Fatal("String To Int:", err)
 		return 0
 	}
 	return int(out)

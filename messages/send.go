@@ -1,9 +1,12 @@
 package messages
 
 import (
+	"MikaPanel/config"
 	"MikaPanel/util"
 	"bytes"
 	"encoding/json"
+	"log"
+	"net/url"
 	"time"
 )
 
@@ -51,10 +54,25 @@ func SendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (
 	case []MessageItem:
 		length := len(message.([]MessageItem))
 		start := 0
-		for i := 0; i < length; i++ {
-			switch message.([]MessageItem)[i].Type {
-			case "record":
-				res = append(res, sendMessage(message.([]MessageItem)[start:i], userId, groupId))
+		for i, messageItem := range message.([]MessageItem) {
+			switch messageItem.Type {
+			case "record", "file", "video", "image":
+				if i > start {
+					res = append(res, sendMessage(message.([]MessageItem)[start:i], userId, groupId))
+				}
+				if messageItem.GetString("url") == "" {
+					file := messageItem.GetString("file")
+					if file[:4] == "http" {
+						fileUrl, err := url.Parse(file)
+						if err != nil {
+							log.Println(err)
+							start = i + 1
+							continue
+						}
+						fileUrl.Host = config.WebHost
+						message.([]MessageItem)[i].Set("file", fileUrl.String())
+					}
+				}
 				start = i + 1
 				res = append(res, sendMessage(message.([]MessageItem)[i:start], userId, groupId))
 			}

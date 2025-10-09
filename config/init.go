@@ -14,14 +14,16 @@ type pluginPolicy struct {
 
 var Host = "127.0.0.1:8080"
 var MysqlHost = "127.0.0.1:3306"
-var Policies map[string]pluginPolicy
+var Policies = make(map[string]pluginPolicy)
+var WebHost = "127.0.0.1:8080"
 
 func init() {
 	var config = struct {
 		Host      string                  `json:"host"`
 		MysqlHost string                  `json:"mysqlHost"`
 		Policies  map[string]pluginPolicy `json:"policies"`
-	}{Host: Host, MysqlHost: MysqlHost}
+		WebHost   string                  `json:"webHost"` // bot前端(napcat)可访问地址
+	}{Host: Host, MysqlHost: MysqlHost, Policies: Policies, WebHost: WebHost}
 	file, err := os.OpenFile("./config/config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		panic(err)
