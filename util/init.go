@@ -96,3 +96,13 @@ func RandomString(length int) string {
 	}
 	return string(b)
 }
+
+func ArrayFastDelete[T any](slice []T, index int) []T {
+	if index < 0 || index >= len(slice) {
+		return slice
+	}
+	// 用最后一个元素覆盖要删除的元素
+	slice[index] = slice[len(slice)-1]
+	// 返回去掉最后一个元素的切片
+	return slice[:len(slice)-1]
+}

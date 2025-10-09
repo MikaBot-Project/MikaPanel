@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
 	"log"
 	"os"
-	"os/exec"
+	"os/signal"
 	"sync"
+	"syscall"
 )
 
 var pluginInBufferMap map[string]*bufio.Writer
@@ -19,6 +17,7 @@ var pluginInMutexMap map[string]*sync.Mutex
 var MessagePluginMap []string
 var CmdPluginMap map[string]string
 var NoticePluginMap map[string][]string
+var pluginOperatorChanMap map[string]chan operator
 
 type intelMessage struct {
 	PostType    string `json:"post_type"`
@@ -33,6 +32,7 @@ func init() {
 	NoticePluginMap = make(map[string][]string)
 	pluginInBufferMap = make(map[string]*bufio.Writer)
 	pluginInMutexMap = make(map[string]*sync.Mutex)
+	pluginOperatorChanMap = make(map[string]chan operator)
 	dirInfo, err := os.Stat("plugin")
 	if err != nil {
 		log.Println("读取插件文件夹路径信息失败")
@@ -55,56 +55,24 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	sigChan := make(chan os.Signal)
+
+	// 注册要捕获的信号
+	signal.Notify(sigChan,
+		syscall.SIGINT,  // Ctrl+C
+		syscall.SIGTERM, // 终止信号
+		syscall.SIGQUIT, // 退出信号
+	)
+	go func() {
+		<-sigChan
+		cancel()
+	}()
 	for _, file := range files { //启动插件线程
 		go func() {
-			logFile, _ := os.OpenFile(fmt.Sprintf("log/%s.log", file.Name()), os.O_CREATE|os.O_WRONLY, os.ModePerm)
-			inReader, inWriter := io.Pipe()
-			outReader, outWriter := io.Pipe()
-			logReader, logWriter := io.Pipe()
-			logOutBuffer := bufio.NewReader(logReader)
-			outBuffer := bufio.NewReader(outReader)
 			name := file.Name()
-			pluginInBufferMap[name] = bufio.NewWriter(inWriter)
-			pluginInMutexMap[file.Name()] = new(sync.Mutex)
-			logWriters := io.MultiWriter(logFile, logWriter)
-			// 创建可取消的上下文
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			cmd := exec.CommandContext(ctx, "./plugin/"+file.Name(), "./config/"+file.Name()+"/")
-			cmd.Stdout = outWriter
-			cmd.Stderr = logWriters
-			cmd.Stdin = inReader
-			runErr := cmd.Start()
-			if runErr != nil {
-				log.Println(runErr)
-				return
-			}
-			go func() { //log线程
-				for {
-					line, _ := logOutBuffer.ReadString('\n')
-					if len(line) == 0 {
-						continue
-					}
-					fmt.Print("[", name, "] ", line)
-				}
-			}()
-			go func() { //读取输出
-				for {
-					line, _ := outBuffer.ReadString('\n')
-					if len(line) == 0 {
-						continue
-					}
-					go pluginRecv(line, name)
-				}
-			}()
-			// 等待命令完成
-			if err = cmd.Wait(); err != nil {
-				// 如果是因为上下文取消而退出，这是预期的
-				if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
-					return
-				}
-				log.Println(file.Name(), err)
-			}
+			pluginOperatorChanMap[name] = make(chan operator)
+			runPlugin(ctx, name)
 		}()
 	}
 }
@@ -123,7 +91,10 @@ func pluginSend(name string, data interface{}) {
 	mutex := pluginInMutexMap[name]
 	mutex.Lock()
 	defer mutex.Unlock()
-	var writer = pluginInBufferMap[name]
+	var writer, ok = pluginInBufferMap[name]
+	if !ok {
+		return
+	}
 	_, err := writer.Write(marshal)
 	if err != nil {
 		log.Println(err)
