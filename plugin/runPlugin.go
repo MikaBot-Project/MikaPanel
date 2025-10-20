@@ -23,7 +23,7 @@ const (
 
 func runPlugin(ctx context.Context, name string) {
 	// 创建可取消的上下文
-	ctx, cancel := context.WithCancel(ctx)
+	ctxCmd, cancel := context.WithCancel(ctx)
 
 	//初始化线程
 	logFile, _ := os.OpenFile(fmt.Sprintf("log/%s.log", name), os.O_CREATE|os.O_WRONLY, os.ModePerm)
@@ -36,7 +36,7 @@ func runPlugin(ctx context.Context, name string) {
 	pluginInMutexMap[name] = new(sync.Mutex)
 	logWriters := io.MultiWriter(logFile, logWriter)
 	cmdArgs := []string{"./plugin/" + name, "./config/" + name + "/", "./data/" + name + "/"}
-	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
+	cmd := exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Stdout = outWriter
 	cmd.Stderr = logWriters
 	cmd.Stdin = inReader
@@ -71,17 +71,22 @@ func runPlugin(ctx context.Context, name string) {
 			op := <-pluginOperatorChanMap[name]
 			switch op {
 			case stop:
+				log.Println("plugin stoping")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
 				delete(pluginInBufferMap, name)
 				unRegister(name)
 				cancel()
+				PluginMap[name] = "stopped"
 				mutex.Unlock()
+				log.Println("plugin stopped")
 			case start:
+				log.Println("plugin starting")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
 				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
-				cmd = exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
+				ctxCmd, cancel = context.WithCancel(ctx)
+				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters
 				cmd.Stdin = inReader
@@ -89,21 +94,31 @@ func runPlugin(ctx context.Context, name string) {
 				if runErr != nil {
 					log.Println(runErr)
 					cancel()
-					return
 				}
+				PluginMap[name] = "running"
 				mutex.Unlock()
+				log.Println("plugin started")
 			case restart:
+				log.Println("plugin restarting")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
+				PluginMap[name] = "restarting"
 				unRegister(name)
 				cancel()
 				time.Sleep(2 * time.Second)
-				cmd = exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
+				ctxCmd, cancel = context.WithCancel(ctx)
+				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters
 				cmd.Stdin = inReader
 				runErr = cmd.Start()
+				if runErr != nil {
+					log.Println(runErr)
+					cancel()
+				}
+				PluginMap[name] = "running"
 				mutex.Unlock()
+				log.Println("plugin restarted")
 			}
 		}
 	}()
@@ -112,13 +127,15 @@ func runPlugin(ctx context.Context, name string) {
 func unRegister(name string) {
 	for i, n := range MessagePluginMap {
 		if n == name {
-			util.ArrayFastDelete(MessagePluginMap, i)
+			MessagePluginMap = util.ArrayFastDelete(MessagePluginMap, i)
+			break
 		}
 	}
-	for _, arr := range NoticePluginMap {
+	for key, arr := range NoticePluginMap {
 		for i, n := range arr {
 			if n == name {
-				util.ArrayFastDelete(arr, i)
+				NoticePluginMap[key] = util.ArrayFastDelete(arr, i)
+				break
 			}
 		}
 	}

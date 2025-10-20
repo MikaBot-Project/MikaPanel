@@ -17,6 +17,8 @@ var pluginInMutexMap map[string]*sync.Mutex
 var MessagePluginMap []string
 var CmdPluginMap map[string]string
 var NoticePluginMap map[string][]string
+var PluginMap map[string]string
+
 var pluginOperatorChanMap map[string]chan operator
 
 type intelMessage struct {
@@ -30,6 +32,7 @@ func init() {
 	log.SetPrefix("[main] ")
 	CmdPluginMap = make(map[string]string)
 	NoticePluginMap = make(map[string][]string)
+	PluginMap = make(map[string]string)
 	pluginInBufferMap = make(map[string]*bufio.Writer)
 	pluginInMutexMap = make(map[string]*sync.Mutex)
 	pluginOperatorChanMap = make(map[string]chan operator)
@@ -75,6 +78,7 @@ func init() {
 			name := file.Name()
 			pluginOperatorChanMap[name] = make(chan operator)
 			runPlugin(ctx, name)
+			PluginMap[name] = "running"
 		}()
 	}
 }
@@ -113,7 +117,7 @@ func pluginSend(name string, data interface{}) {
 	}
 }
 
-func PluginConfigReload(name string) {
+func ConfigReload(name string) {
 	data := intelMessage{
 		PostType:    "operator",
 		MessageType: "config",

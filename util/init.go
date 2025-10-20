@@ -1,14 +1,11 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -41,44 +38,6 @@ func StringMatch(str, pattern string) bool {
 		return false
 	}
 	return res
-}
-
-func LoadJsonDir[T any](rootPath string, textMap *map[string]T) {
-	dirInfo, err := os.Stat(rootPath)
-	if err != nil {
-		fmt.Println("读取路径" + rootPath + "信息失败")
-		return
-	}
-	if !dirInfo.IsDir() {
-		fmt.Println("路径" + rootPath + "非文件夹")
-		return
-	}
-	dir, err := os.Open(rootPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	files, err := dir.Readdir(-1)
-	err = dir.Close()
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		if StringMatch(file.Name(), ".json") {
-			textMessageFile, err := os.ReadFile(rootPath + "/" + file.Name())
-			if err != nil {
-				fmt.Println("读取" + file.Name() + "配置文件失败")
-				fmt.Println(err)
-				continue
-			}
-			var msgMap T
-			err = json.Unmarshal(textMessageFile, &msgMap)
-			if err != nil {
-				fmt.Println("解析" + file.Name() + "配置文件失败")
-				fmt.Println(err)
-			}
-			(*textMap)[strings.Split(file.Name(), ".json")[0]] = msgMap
-		}
-	}
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")

@@ -28,7 +28,8 @@ func init() {
 		}()
 		log.Println("websocket upgrade success")
 	})
-	Mux.Handle("/config/", http.FileServer(http.Dir("./config")))
+	Mux.Handle("/api/config/", http.StripPrefix("/api", getConfigHandler()))
+	Mux.Handle("/api/", http.StripPrefix("/api/", &apiHandler{}))
 	Mux.Handle("/", http.FileServer(http.Dir("./web")))
 }
 
