@@ -4,6 +4,7 @@ import (
 	"MikaPanel/util"
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -21,9 +22,10 @@ const (
 	restart = operator("restart")
 )
 
-func runPlugin(ctx context.Context, name string) {
+func RunPlugin(ctx context.Context, name string) {
 	// 创建可取消的上下文
 	ctxCmd, cancel := context.WithCancel(ctx)
+	pluginOperatorChanMap[name] = make(chan operator)
 
 	//初始化线程
 	logFile, _ := os.OpenFile(fmt.Sprintf("log/%s.log", name), os.O_CREATE|os.O_WRONLY, os.ModePerm)
@@ -71,16 +73,24 @@ func runPlugin(ctx context.Context, name string) {
 			op := <-pluginOperatorChanMap[name]
 			switch op {
 			case stop:
+				if StatusMap[name] == "stopped" {
+					log.Println("plugin is already stopped")
+					break
+				}
 				log.Println("plugin stoping")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
 				delete(pluginInBufferMap, name)
 				unRegister(name)
 				cancel()
-				PluginMap[name] = "stopped"
+				StatusMap[name] = "stopped"
 				mutex.Unlock()
 				log.Println("plugin stopped")
 			case start:
+				if StatusMap[name] == "running" {
+					log.Println("plugin is already started")
+					break
+				}
 				log.Println("plugin starting")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
@@ -95,14 +105,15 @@ func runPlugin(ctx context.Context, name string) {
 					log.Println(runErr)
 					cancel()
 				}
-				PluginMap[name] = "running"
+				go cmdErrListener(name, cmd, ctxCmd)
+				StatusMap[name] = "running"
 				mutex.Unlock()
 				log.Println("plugin started")
 			case restart:
 				log.Println("plugin restarting")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
-				PluginMap[name] = "restarting"
+				StatusMap[name] = "restarting"
 				unRegister(name)
 				cancel()
 				time.Sleep(2 * time.Second)
@@ -116,12 +127,29 @@ func runPlugin(ctx context.Context, name string) {
 					log.Println(runErr)
 					cancel()
 				}
-				PluginMap[name] = "running"
+				go cmdErrListener(name, cmd, ctxCmd)
+				StatusMap[name] = "running"
 				mutex.Unlock()
 				log.Println("plugin restarted")
 			}
 		}
 	}()
+	go cmdErrListener(name, cmd, ctxCmd)
+	StatusMap[name] = "running"
+}
+
+func cmdErrListener(name string, cmd *exec.Cmd, cmdCtx context.Context) {
+	if err := cmd.Wait(); err != nil {
+		if !errors.Is(cmdCtx.Err(), context.Canceled) {
+			log.Println("plugin exited by err:", err.Error())
+		}
+	}
+	mutex := pluginInMutexMap[name]
+	mutex.Lock()
+	delete(pluginInBufferMap, name)
+	unRegister(name)
+	StatusMap[name] = "stopped"
+	mutex.Unlock()
 }
 
 func unRegister(name string) {

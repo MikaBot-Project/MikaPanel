@@ -13,7 +13,9 @@ var upgrader *gws.Upgrader
 
 func init() {
 	Mux = http.NewServeMux()
-	upgrader = gws.NewUpgrader(&SocketHandler{}, &gws.ServerOption{
+	upgrader = gws.NewUpgrader(&SocketHandler{
+		isOpen: true,
+	}, &gws.ServerOption{
 		ParallelEnabled: true,
 		Recovery:        gws.Recovery,
 	})

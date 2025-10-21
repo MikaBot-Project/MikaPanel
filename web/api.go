@@ -26,7 +26,7 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Message: plugin.MessagePluginMap,
 			Command: plugin.CmdPluginMap,
 			Notice:  plugin.NoticePluginMap,
-			Plugins: plugin.PluginMap,
+			Plugins: plugin.StatusMap,
 		}
 		marshal, err := json.Marshal(data)
 		if err != nil {
@@ -48,6 +48,11 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" && urlArgs[0] == "upload" {
 		switch urlArgs[1] {
 		case "config":
+			if len(urlArgs) < 3 {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(`{"message":"plugin name is required"}`))
+				return
+			}
 			configPath := "./" + strings.Join(urlArgs[1:], "/")
 			file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
@@ -75,6 +80,12 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("{\"message\":\"ok\"}"))
 		case "plugin":
 			pluginPath := "./" + strings.Join(urlArgs[1:], "/")
+			status, ok := plugin.StatusMap[urlArgs[2]]
+			if ok && status != "stopped" {
+				plugin.StopPlugin(urlArgs[2])
+				plugin.LockPluginMutex(urlArgs[2])
+				defer plugin.UnlockPluginMutex(urlArgs[2])
+			}
 			file, err := os.OpenFile(pluginPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -126,6 +137,8 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch urlArgs[1] {
 		case "reload":
 			config.LoadConfig()
+		case "policies":
+
 		}
 		return
 	}

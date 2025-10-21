@@ -17,7 +17,7 @@ var pluginInMutexMap map[string]*sync.Mutex
 var MessagePluginMap []string
 var CmdPluginMap map[string]string
 var NoticePluginMap map[string][]string
-var PluginMap map[string]string
+var StatusMap map[string]string
 
 var pluginOperatorChanMap map[string]chan operator
 
@@ -32,7 +32,7 @@ func init() {
 	log.SetPrefix("[main] ")
 	CmdPluginMap = make(map[string]string)
 	NoticePluginMap = make(map[string][]string)
-	PluginMap = make(map[string]string)
+	StatusMap = make(map[string]string)
 	pluginInBufferMap = make(map[string]*bufio.Writer)
 	pluginInMutexMap = make(map[string]*sync.Mutex)
 	pluginOperatorChanMap = make(map[string]chan operator)
@@ -76,9 +76,7 @@ func init() {
 	for _, file := range files { //启动插件线程
 		go func() {
 			name := file.Name()
-			pluginOperatorChanMap[name] = make(chan operator)
-			runPlugin(ctx, name)
-			PluginMap[name] = "running"
+			RunPlugin(ctx, name)
 		}()
 	}
 }
@@ -124,4 +122,14 @@ func ConfigReload(name string) {
 		SubType:     "reload",
 	}
 	pluginSend(name, data)
+}
+
+func LockPluginMutex(name string) {
+	mutex := pluginInMutexMap[name]
+	mutex.Lock()
+}
+
+func UnlockPluginMutex(name string) {
+	mutex := pluginInMutexMap[name]
+	mutex.Unlock()
 }

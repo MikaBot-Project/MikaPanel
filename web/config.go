@@ -13,7 +13,7 @@ type configHandler struct {
 
 func (m *configHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/config/" {
-		m.fileServer.ServeHTTP(w, r)
+		http.NotFound(w, r)
 		return
 	}
 	if r.URL.Path[len(r.URL.Path)-1] == '/' {
