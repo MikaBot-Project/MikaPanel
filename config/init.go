@@ -7,22 +7,21 @@ import (
 	"sort"
 )
 
-type pluginPolicy struct {
+type PluginPolicy struct {
 	Type      string `json:"type"`
 	GroupOnly bool   `json:"group_only"`
 	Groups    []int  `json:"groups"`
-	AdminId   int64  `json:"admin_id"`
 }
 
 var Host = "127.0.0.1:8080"
 var MysqlHost = "127.0.0.1:3306"
-var Policies = make(map[string]pluginPolicy)
+var Policies = make(map[string]PluginPolicy)
 var WebHost = "127.0.0.1:8080"
 var AdminId = int64(0)
 var config = struct {
 	Host      string                  `json:"host"`
 	MysqlHost string                  `json:"mysqlHost"`
-	Policies  map[string]pluginPolicy `json:"policies"`
+	Policies  map[string]PluginPolicy `json:"policies"`
 	WebHost   string                  `json:"webHost"` // bot前端(napcat)可访问地址
 	AdminId   int64                   `json:"adminId"`
 }{Host: Host,

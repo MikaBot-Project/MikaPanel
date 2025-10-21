@@ -138,7 +138,23 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "reload":
 			config.LoadConfig()
 		case "policies":
-
+			if len(urlArgs) < 3 {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(`{"message":"plugin name is required"}`))
+				return
+			}
+			policy := config.PluginPolicy{
+				Type:      "",
+				GroupOnly: false,
+			}
+			var bytes []byte
+			_, err := io.ReadFull(r.Body, bytes)
+			if err != nil {
+				return
+			}
+			err = json.Unmarshal(bytes, &policy)
+			config.Policies[urlArgs[2]] = policy
+			config.SaveConfig()
 		}
 		return
 	}
