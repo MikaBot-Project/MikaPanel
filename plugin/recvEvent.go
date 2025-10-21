@@ -4,6 +4,7 @@ import (
 	"MikaPanel/config"
 	"MikaPanel/messages"
 	"MikaPanel/util"
+	"encoding/json"
 	"log"
 	"sort"
 	"strings"
@@ -61,6 +62,42 @@ func RecvEvent(data messages.Event) {
 		}
 	case "request":
 		log.Println("get request")
+		switch data.RequestType {
+		case "friend":
+			if data.UserId == config.AdminId {
+				send := struct {
+					Flag    string `json:"flag"`
+					Approve bool   `json:"approve"`
+					Remark  string `json:"remark"`
+				}{Flag: data.Flag, Approve: true, Remark: ""}
+				bytes, _ := json.Marshal(send)
+				messages.Send(bytes, "set_friend_add_request")
+			} else {
+				messages.SendMessage(util.Int64ToString(data.UserId)+"请求添加为好友", config.AdminId, 0)
+			}
+		case "group":
+			switch data.SubType {
+			case "invite":
+				if data.UserId == config.AdminId {
+					send := struct {
+						Flag    string `json:"flag"`
+						Approve bool   `json:"approve"`
+						Reason  string `json:"reason"`
+					}{Flag: data.Flag, Approve: true, Reason: ""}
+					bytes, _ := json.Marshal(send)
+					messages.Send(bytes, "set_group_add_request")
+				} else {
+					messages.SendMessage(util.Int64ToString(data.UserId)+"请求拉入群聊"+util.Int64ToString(data.GroupId),
+						config.AdminId, 0)
+				}
+			case "add":
+				for _, name := range NoticePluginMap["group_add"] {
+					if pluginPolicyCheck(name, int(data.GroupId)) {
+						pluginSend(name, data)
+					}
+				}
+			}
+		}
 	case "meta_event":
 		switch data.MetaEventType {
 		case "lifecycle":
