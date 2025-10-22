@@ -94,6 +94,7 @@ func RunPlugin(ctx context.Context, name string) {
 				log.Println("plugin starting")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
+				inReader, inWriter = io.Pipe()
 				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
 				ctxCmd, cancel = context.WithCancel(ctx)
 				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
