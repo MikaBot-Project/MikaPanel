@@ -73,7 +73,22 @@ func RecvEvent(data messages.Event) {
 				bytes, _ := json.Marshal(send)
 				messages.Send(bytes, "set_friend_add_request")
 			} else {
-				messages.SendMessage(util.Int64ToString(data.UserId)+"请求添加为好友", config.AdminId, 0)
+				send := struct {
+					UserId int64 `json:"user_id"`
+				}{UserId: data.UserId}
+				bytes, _ := json.Marshal(send)
+				bytes = messages.Send(bytes, "get_stranger_info")
+				recv := struct {
+					Data struct {
+						Nickname string `json:"nickname"`
+					} `json:"data"`
+				}{}
+				recv.Data.Nickname = ""
+				err := json.Unmarshal(bytes, &recv)
+				if err != nil {
+					return
+				}
+				messages.SendMessage(recv.Data.Nickname+" "+util.Int64ToString(data.UserId)+"请求添加为好友", config.AdminId, 0)
 			}
 		case "group":
 			switch data.SubType {
@@ -87,11 +102,28 @@ func RecvEvent(data messages.Event) {
 					bytes, _ := json.Marshal(send)
 					messages.Send(bytes, "set_group_add_request")
 				} else {
-					messages.SendMessage(util.Int64ToString(data.UserId)+"请求拉入群聊"+util.Int64ToString(data.GroupId),
+					send := struct {
+						UserId int64 `json:"user_id"`
+					}{UserId: data.UserId}
+					bytes, _ := json.Marshal(send)
+					bytes = messages.Send(bytes, "get_stranger_info")
+					recv := struct {
+						Data struct {
+							Nickname string `json:"nickname"`
+						} `json:"data"`
+					}{}
+					recv.Data.Nickname = ""
+					err := json.Unmarshal(bytes, &recv)
+					if err != nil {
+						return
+					}
+					messages.SendMessage(recv.Data.Nickname+" "+util.Int64ToString(data.UserId)+"请求拉入群聊"+util.Int64ToString(data.GroupId),
 						config.AdminId, 0)
 				}
 			case "add":
 				for _, name := range NoticePluginMap["group_add"] {
+					data.PostType = "notice"
+					data.NoticeType = "group_add"
 					if pluginPolicyCheck(name, int(data.GroupId)) {
 						pluginSend(name, data)
 					}
