@@ -32,7 +32,6 @@ func RecvEvent(data messages.Event) {
 				}
 				name, ok := CmdPluginMap[cmd]
 				if ok {
-					log.Println("get cmd " + cmd + " from plugin")
 					data.PostType = "command"
 					data.CommandArgs = args
 					if pluginPolicyCheck(name, int(data.GroupId)) {

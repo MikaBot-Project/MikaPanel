@@ -105,6 +105,8 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{\"message\":\"ok\"}"))
+		default:
+			http.NotFound(w, r)
 		}
 		return
 	}
@@ -130,13 +132,19 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{\"message\":\"ok\"}"))
+		default:
+			http.NotFound(w, r)
 		}
 		return
 	}
 	if urlArgs[0] == "panel" {
 		switch urlArgs[1] {
 		case "reload":
+			log.Println("Reload config")
 			config.LoadConfig()
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("{\"message\":\"ok\"}"))
 		case "policies":
 			if len(urlArgs) < 3 {
 				w.WriteHeader(http.StatusBadRequest)
@@ -155,7 +163,13 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(bytes, &policy)
 			config.Policies[urlArgs[2]] = policy
 			config.SaveConfig()
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("{\"message\":\"ok\"}"))
+		default:
+			http.NotFound(w, r)
 		}
 		return
 	}
+	http.NotFound(w, r)
 }

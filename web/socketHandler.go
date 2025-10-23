@@ -29,6 +29,7 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 				log.Println("Send data err:", err)
 				messages.SendChan <- data
 				_ = socket.WriteClose(1000, nil)
+				c.isOpen = false
 				return
 			}
 		}
@@ -38,6 +39,8 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 			time.Sleep(10 * time.Second)
 			err := socket.WritePing([]byte(util.RandomString(8)))
 			if err != nil {
+				log.Println("Send ping err:", err)
+				c.isOpen = false
 				return
 			}
 		}
@@ -45,8 +48,7 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 }
 
 func (c *SocketHandler) OnClose(socket *gws.Conn, err error) {
-	log.Println("websocket close")
-	log.Println("websocket close err:", err)
+	log.Println("websocket close with err:", err)
 	c.isOpen = false
 }
 
