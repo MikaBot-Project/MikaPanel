@@ -15,32 +15,29 @@ const (
 )
 
 type SocketHandler struct {
-	isOpen bool
 }
 
 func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 	_ = socket.SetDeadline(time.Now().Add(PingInterval + PingWait))
 	go func() { //发送数据
 		var data []byte
-		for c.isOpen {
+		for {
 			data = <-messages.SendChan
 			err := socket.WriteMessage(gws.OpcodeText, data)
 			if err != nil {
 				log.Println("Send data err:", err)
 				messages.SendChan <- data
 				_ = socket.WriteClose(1000, nil)
-				c.isOpen = false
 				return
 			}
 		}
 	}()
 	go func() {
-		for c.isOpen {
+		for {
 			time.Sleep(10 * time.Second)
 			err := socket.WritePing([]byte(util.RandomString(8)))
 			if err != nil {
 				log.Println("Send ping err:", err)
-				c.isOpen = false
 				return
 			}
 		}
@@ -49,7 +46,6 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 
 func (c *SocketHandler) OnClose(socket *gws.Conn, err error) {
 	log.Println("websocket close with err:", err)
-	c.isOpen = false
 }
 
 func (c *SocketHandler) OnPing(socket *gws.Conn, payload []byte) {

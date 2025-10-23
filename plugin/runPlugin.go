@@ -176,13 +176,27 @@ func unRegister(name string) {
 }
 
 func StopPlugin(name string) {
+	_, ok := StatusMap[name]
+	if !ok {
+		return
+	}
 	pluginOperatorChanMap[name] <- stop
 }
 
 func StartPlugin(name string) {
+	_, ok := StatusMap[name]
+	if !ok {
+		RunPlugin(ctx, name)
+		return
+	}
 	pluginOperatorChanMap[name] <- start
 }
 
 func RestartPlugin(name string) {
+	_, ok := StatusMap[name]
+	if !ok {
+		RunPlugin(ctx, name)
+		return
+	}
 	pluginOperatorChanMap[name] <- restart
 }

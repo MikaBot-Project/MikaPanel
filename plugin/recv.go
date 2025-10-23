@@ -68,18 +68,22 @@ func pluginRecv(recvData string, name string) {
 			NoticePluginMap[data[2]] = append(NoticePluginMap[data[2]], name)
 		}
 	case "operator": //operator <target> <operator> <args...>
-		send := struct {
-			PostType    string   `json:"post_type"`
-			MessageType string   `json:"message_type"`
-			SubType     string   `json:"sub_type"`
-			CommandArgs []string `json:"command_args"`
-		}{
-			PostType:    "operator",
-			MessageType: data[2],
-			SubType:     name,
-			CommandArgs: data[3:],
+		if data[1] == "panel" {
+			pluginSend(name, panelOperator(data[2], data[3:]))
+		} else {
+			send := struct {
+				PostType    string   `json:"post_type"`
+				MessageType string   `json:"message_type"`
+				SubType     string   `json:"sub_type"`
+				CommandArgs []string `json:"command_args"`
+			}{
+				PostType:    "operator",
+				MessageType: data[2],
+				SubType:     name,
+				CommandArgs: data[3:],
+			}
+			pluginSend(data[1], send)
 		}
-		pluginSend(data[1], send)
 	}
 }
 

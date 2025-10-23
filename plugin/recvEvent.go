@@ -132,9 +132,10 @@ func RecvEvent(data messages.Event) {
 	case "meta_event":
 		switch data.MetaEventType {
 		case "lifecycle":
+			selfId = data.SelfId
 			log.Println("bot连接成功 ", data.SubType)
 		case "heartbeat":
-
+			selfId = data.SelfId
 		}
 	default:
 		log.Println(data)

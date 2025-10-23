@@ -102,6 +102,7 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				_, err = w.Write([]byte(err.Error()))
 				return
 			}
+			plugin.StartPlugin(urlArgs[2])
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{\"message\":\"ok\"}"))

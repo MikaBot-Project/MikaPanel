@@ -41,27 +41,25 @@ type Event struct {
 	SubType       string        `json:"sub_type"`
 	MessageId     int64         `json:"message_id"`
 	MessageArray  []MessageItem `json:"message"`
+	MessageFormat string        `json:"message_format"`
 	RawMessage    string        `json:"raw_message"`
-	NoticeType    string        `json:"notice_type"`
-	TargetId      int64         `json:"target_id"`
-	MetaEventType string        `json:"meta_event_type"`
-	RequestType   string        `json:"request_type"`
-	Comment       string        `json:"comment"`
-	Flag          string        `json:"flag"`
-	AtMe          bool          `json:"at_me"`
-	CommandArgs   []string      `json:"command_args"`
-}
-
-type Message struct {
-	Time         int64         `json:"time"`
-	SelfId       int64         `json:"self_id"`
-	UserId       int64         `json:"user_id"`
-	GroupId      int64         `json:"group_id"`
-	MessageType  string        `json:"message_type"`
-	SubType      string        `json:"sub_type"`
-	MessageId    int64         `json:"message_id"`
-	MessageArray []MessageItem `json:"message"`
-	RawMessage   string        `json:"raw_message"`
+	Sender        struct {
+		UserId   int64  `json:"user_id"`
+		NickName string `json:"nickname"`
+		Sex      string `json:"sex"`
+		GroupId  int64  `json:"group_id"`
+		Card     string `json:"card"`
+		Role     string `json:"role"`
+	} `json:"sender"`
+	NoticeType    string   `json:"notice_type"`
+	TargetId      int64    `json:"target_id"`
+	TempSource    string   `json:"temp_source"`
+	MetaEventType string   `json:"meta_event_type"`
+	RequestType   string   `json:"request_type"`
+	Comment       string   `json:"comment"`
+	Flag          string   `json:"flag"`
+	AtMe          bool     `json:"at_me"`
+	CommandArgs   []string `json:"command_args"`
 }
 
 type sendMessageResponse struct {

@@ -19,6 +19,9 @@ var CmdPluginMap map[string]string
 var NoticePluginMap map[string][]string
 var StatusMap map[string]string
 
+var ctx context.Context
+var selfId int64
+
 var pluginOperatorChanMap map[string]chan operator
 
 type intelMessage struct {
@@ -29,6 +32,7 @@ type intelMessage struct {
 }
 
 func init() {
+	selfId = 0
 	log.SetPrefix("[main] ")
 	CmdPluginMap = make(map[string]string)
 	NoticePluginMap = make(map[string][]string)
@@ -58,7 +62,8 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(context.Background())
 	sigChan := make(chan os.Signal)
 
 	// 注册要捕获的信号
