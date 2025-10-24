@@ -88,8 +88,8 @@ func init() {
 	go func() {
 		var data []byte
 		recv := struct {
-			Status any    `json:"status"`
-			Echo   string `json:"echo"`
+			Status any `json:"status"`
+			Echo   any `json:"echo"`
 		}{
 			Status: "event",
 			Echo:   "",
@@ -114,7 +114,13 @@ func init() {
 					}
 					EventChan <- event
 				case "ok":
-					sendRecvMap.Set(recv.Echo, data)
+					echo, _ := json.Marshal(recv.Echo)
+					switch recv.Echo.(type) {
+					case string:
+						sendRecvMap.Set(string(echo), data)
+					default:
+						sendRecvMap.Set(string(echo), data)
+					}
 				default:
 					returnMsg := struct {
 						Message string `json:"status"`
@@ -126,7 +132,8 @@ func init() {
 					}
 					log.Println("return Status:", recv.Status)
 					log.Println("return Msg:", returnMsg.Message)
-					sendRecvMap.Set(recv.Echo, data)
+					echo, _ := json.Marshal(recv.Echo)
+					sendRecvMap.Set(string(echo), data)
 				}
 			default:
 				var event Event

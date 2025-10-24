@@ -64,7 +64,7 @@ func init() {
 	}
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(context.Background())
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 
 	// 注册要捕获的信号
 	signal.Notify(sigChan,

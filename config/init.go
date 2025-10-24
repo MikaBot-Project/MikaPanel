@@ -18,17 +18,20 @@ var MysqlHost = "127.0.0.1:3306"
 var Policies = make(map[string]PluginPolicy)
 var WebHost = "127.0.0.1:8080"
 var AdminId = int64(0)
+var SendThreadCount = 3
 var config = struct {
-	Host      string                  `json:"host"`
-	MysqlHost string                  `json:"mysqlHost"`
-	Policies  map[string]PluginPolicy `json:"policies"`
-	WebHost   string                  `json:"webHost"` // bot前端(napcat)可访问地址
-	AdminId   int64                   `json:"adminId"`
+	Host            string                  `json:"host"`
+	MysqlHost       string                  `json:"mysqlHost"`
+	Policies        map[string]PluginPolicy `json:"policies"`
+	WebHost         string                  `json:"webHost"` // bot前端(napcat)可访问地址
+	AdminId         int64                   `json:"adminId"`
+	SendThreadCount int                     `json:"sendThreadCount"`
 }{Host: Host,
-	MysqlHost: MysqlHost,
-	Policies:  Policies,
-	WebHost:   WebHost,
-	AdminId:   AdminId,
+	MysqlHost:       MysqlHost,
+	Policies:        Policies,
+	WebHost:         WebHost,
+	AdminId:         AdminId,
+	SendThreadCount: SendThreadCount,
 }
 
 func init() {
@@ -76,6 +79,7 @@ func LoadConfig() {
 	MysqlHost = config.MysqlHost
 	WebHost = config.WebHost
 	AdminId = config.AdminId
+	SendThreadCount = config.SendThreadCount
 	for _, policy := range config.Policies {
 		sort.Ints(policy.Groups)
 	}

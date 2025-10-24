@@ -1,6 +1,7 @@
 package web
 
 import (
+	"MikaPanel/config"
 	"MikaPanel/messages"
 	"MikaPanel/util"
 	"log"
@@ -19,19 +20,23 @@ type SocketHandler struct {
 
 func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 	_ = socket.SetDeadline(time.Now().Add(PingInterval + PingWait))
-	go func() { //发送数据
-		var data []byte
-		for {
-			data = <-messages.SendChan
-			err := socket.WriteMessage(gws.OpcodeText, data)
-			if err != nil {
-				log.Println("Send data err:", err)
-				messages.SendChan <- data
-				_ = socket.WriteClose(1000, nil)
-				return
+	var i = 0
+	for i < config.SendThreadCount {
+		go func() { //发送数据
+			var data []byte
+			for {
+				data = <-messages.SendChan
+				err := socket.WriteMessage(gws.OpcodeText, data)
+				if err != nil {
+					log.Println("Send data err:", err)
+					messages.SendChan <- data
+					_ = socket.WriteClose(1000, nil)
+					return
+				}
 			}
-		}
-	}()
+		}()
+		i++
+	}
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)

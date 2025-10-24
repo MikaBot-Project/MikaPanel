@@ -43,7 +43,7 @@ func pluginRecv(recvData []byte, name string) {
 			log.Println("json err:", err)
 			return
 		}
-		log.Println("plugin", name, "send msg:", data.Data)
+		log.Println("plugin", name, "send msg:", string(data.Data))
 		sendPluginResp(name, string(marshal), string(data.Echo))
 	case "send_poke": //send_poke <userId> <groupId>
 		log.Println("plugin", name, "send poke:", data.UserId, data.GroupId)

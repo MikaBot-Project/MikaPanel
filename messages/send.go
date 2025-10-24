@@ -24,11 +24,11 @@ func SendData(sendParams []byte, api string, echo []byte) []byte {
 	data = bytes.Replace(data, []byte("\"e\""), echo, 1)
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, 1)
 	SendChan <- data
-	defer sendRecvMap.Delete(send.Echo)
+	defer sendRecvMap.Delete(string(echo))
 	var exists = false
 	for !exists {
 		time.Sleep(1 * time.Second)
-		data, exists = sendRecvMap.Get(send.Echo)
+		data, exists = sendRecvMap.Get(string(echo))
 	}
 	return data
 }
