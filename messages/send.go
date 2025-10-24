@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Send(sendParams []byte, api string) []byte {
+func SendData(sendParams []byte, api string, echo string) []byte {
 	send := struct {
 		Action string `json:"action"`
 		Params string `json:"params"`
@@ -18,18 +18,22 @@ func Send(sendParams []byte, api string) []byte {
 	}{
 		Action: api,
 		Params: "p",
-		Echo:   util.RandomString(64),
+		Echo:   echo,
 	}
 	data, _ := json.Marshal(send)
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, 1)
 	SendChan <- data
-	defer delete(sendRecvMap, send.Echo)
+	defer sendRecvMap.Delete(send.Echo)
 	var exists = false
 	for !exists {
 		time.Sleep(1 * time.Second)
-		_, exists = sendRecvMap[send.Echo]
+		data, exists = sendRecvMap.Get(send.Echo)
 	}
-	return sendRecvMap[send.Echo]
+	return data
+}
+
+func SendApi(sendParams []byte, api string) []byte {
+	return SendData(sendParams, api, util.RandomString(64))
 }
 
 func sendMsg(data any, api string) (messageId int32) {
@@ -38,7 +42,7 @@ func sendMsg(data any, api string) (messageId int32) {
 	if err != nil {
 		return 0
 	}
-	respData := Send(send, api)
+	respData := SendApi(send, api)
 	var respDataStruct sendMessageResponse
 	err = json.Unmarshal(respData, &respDataStruct)
 	if err != nil {
@@ -117,13 +121,13 @@ func SendPoke(userId, groupId string) {
 			TargetId string `json:"target_id"`
 		}{userId, userId}
 		send, _ := json.Marshal(data)
-		Send(send, "friend_poke")
+		SendApi(send, "friend_poke")
 	} else {
 		data := struct {
 			GroupId string `json:"group_id"`
 			UserId  string `json:"user_id"`
 		}{groupId, userId}
 		send, _ := json.Marshal(data)
-		Send(send, "group_poke")
+		SendApi(send, "group_poke")
 	}
 }

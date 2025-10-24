@@ -31,8 +31,12 @@ func pluginRecv(recvData string, name string) {
 		var err error
 		if json.Valid(marshal) {
 			var msg []messages.MessageItem
-			_ = json.Unmarshal(marshal, &msg)
-			marshal, err = json.Marshal(messages.SendMessage(msg, util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+			err = json.Unmarshal(marshal, &msg)
+			if err != nil {
+				marshal, err = json.Marshal(messages.SendMessage(data[3], util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+			} else {
+				marshal, err = json.Marshal(messages.SendMessage(msg, util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+			}
 		} else {
 			marshal, err = json.Marshal(messages.SendMessage(data[3], util.StringToInt64(data[1]), util.StringToInt64(data[2])))
 		}
@@ -54,7 +58,7 @@ func pluginRecv(recvData string, name string) {
 			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 4", name))
 			return
 		}
-		sendPluginResp(name, string(messages.Send([]byte(data[2]), data[1])), data[3])
+		sendPluginResp(name, string(messages.SendData([]byte(data[2]), data[1], data[3])), data[3])
 	case "register": //register <type> <args>
 		switch data[1] {
 		case "message":

@@ -119,6 +119,8 @@ func RunPlugin(ctx context.Context, name string) {
 				cancel()
 				time.Sleep(2 * time.Second)
 				ctxCmd, cancel = context.WithCancel(ctx)
+				inReader, inWriter = io.Pipe()
+				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
 				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters

@@ -70,13 +70,13 @@ func RecvEvent(data messages.Event) {
 					Remark  string `json:"remark"`
 				}{Flag: data.Flag, Approve: true, Remark: ""}
 				bytes, _ := json.Marshal(send)
-				messages.Send(bytes, "set_friend_add_request")
+				messages.SendApi(bytes, "set_friend_add_request")
 			} else {
 				send := struct {
 					UserId int64 `json:"user_id"`
 				}{UserId: data.UserId}
 				bytes, _ := json.Marshal(send)
-				bytes = messages.Send(bytes, "get_stranger_info")
+				bytes = messages.SendApi(bytes, "get_stranger_info")
 				recv := struct {
 					Data struct {
 						Nickname string `json:"nickname"`
@@ -99,13 +99,13 @@ func RecvEvent(data messages.Event) {
 						Reason  string `json:"reason"`
 					}{Flag: data.Flag, Approve: true, Reason: ""}
 					bytes, _ := json.Marshal(send)
-					messages.Send(bytes, "set_group_add_request")
+					messages.SendApi(bytes, "set_group_add_request")
 				} else {
 					send := struct {
 						UserId int64 `json:"user_id"`
 					}{UserId: data.UserId}
 					bytes, _ := json.Marshal(send)
-					bytes = messages.Send(bytes, "get_stranger_info")
+					bytes = messages.SendApi(bytes, "get_stranger_info")
 					recv := struct {
 						Data struct {
 							Nickname string `json:"nickname"`

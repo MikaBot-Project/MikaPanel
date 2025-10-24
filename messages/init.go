@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"MikaPanel/util"
 	"encoding/json"
 	"log"
 )
@@ -37,6 +38,10 @@ type Event struct {
 	PostType      string        `json:"post_type"`
 	UserId        int64         `json:"user_id"`
 	GroupId       int64         `json:"group_id"`
+	GroupName     string        `json:"group_name"`
+	Font          int           `json:"font"`
+	RealSeq       string        `json:"real_seq"`
+	MessageSeq    int           `json:"message_seq"`
 	MessageType   string        `json:"message_type"`
 	SubType       string        `json:"sub_type"`
 	MessageId     int64         `json:"message_id"`
@@ -73,13 +78,13 @@ type sendMessageResponse struct {
 var EventChan chan Event
 var SendChan chan []byte
 var RecvChan chan []byte
-var sendRecvMap map[string][]byte
+var sendRecvMap *util.SafeMap[[]byte]
 
 func init() {
 	EventChan = make(chan Event, 10)
 	SendChan = make(chan []byte, 10)
 	RecvChan = make(chan []byte, 10)
-	sendRecvMap = make(map[string][]byte)
+	sendRecvMap = util.NewSafeMap[[]byte]()
 	go func() {
 		var data []byte
 		recv := struct {
@@ -109,7 +114,7 @@ func init() {
 					}
 					EventChan <- event
 				case "ok":
-					sendRecvMap[recv.Echo] = data
+					sendRecvMap.Set(recv.Echo, data)
 				default:
 					returnMsg := struct {
 						Message string `json:"status"`
@@ -121,7 +126,7 @@ func init() {
 					}
 					log.Println("return Status:", recv.Status)
 					log.Println("return Msg:", returnMsg.Message)
-					sendRecvMap[recv.Echo] = data
+					sendRecvMap.Set(recv.Echo, data)
 				}
 			default:
 				var event Event
