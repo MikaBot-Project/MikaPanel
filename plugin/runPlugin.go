@@ -61,7 +61,7 @@ func RunPlugin(ctx context.Context, name string) {
 	}()
 	go func() { //读取输出
 		for {
-			line, _ := outBuffer.ReadString('\n')
+			line, _ := outBuffer.ReadBytes('\n')
 			if len(line) == 0 {
 				continue
 			}

@@ -2,78 +2,69 @@ package plugin
 
 import (
 	"MikaPanel/messages"
-	"MikaPanel/util"
 	"encoding/json"
-	"fmt"
 	"log"
-	"strings"
 )
 
-func pluginRecv(recvData string, name string) {
-	data := strings.Split(recvData[:len(recvData)-1], ":##:")
-	dataLen := len(data)
-	switch data[0] {
-	case "init":
-		log.Println("plugin ", name, "init")
-		if data[1] != "v1" {
-			log.Println("Warning: plugin ", name, "Mismatch of library version")
-			return
-		}
-		for _, item := range data[1:] {
-			log.Println(fmt.Sprintf("[%s] %s", name, item))
-		}
-	case "send_msg": //send_msg <userId> <groupId> <message> <echo>
-		if dataLen < 5 {
-			log.Println(fmt.Sprintf("[%s] send_msg: args number lass than 5", name))
-			return
-		}
-		var marshal = []byte(data[3])
-		var err error
-		if json.Valid(marshal) {
+type dataType struct {
+	Action       string   `json:"action"`
+	Echo         []byte   `json:"echo"`
+	UserId       int64    `json:"user_id"`
+	GroupId      int64    `json:"group_id"`
+	ApiName      string   `json:"api_name"`
+	Data         []byte   `json:"data"`
+	RegisterType string   `json:"register_type"`
+	SubType      string   `json:"sub_type"`
+	Arguments    []string `json:"arguments"`
+}
+
+func pluginRecv(recvData []byte, name string) {
+	var data dataType
+	err := json.Unmarshal(recvData, &data)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	switch data.Action {
+	case "send_msg": //send_msg <userId> <groupId> <data> <sub_type> <echo>
+		var marshal []byte
+		if data.SubType == "array" {
 			var msg []messages.MessageItem
-			err = json.Unmarshal(marshal, &msg)
+			err = json.Unmarshal(data.Data, &msg)
 			if err != nil {
-				marshal, err = json.Marshal(messages.SendMessage(data[3], util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+				marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId))
 			} else {
-				marshal, err = json.Marshal(messages.SendMessage(msg, util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+				marshal, err = json.Marshal(messages.SendMessage(msg, data.UserId, data.GroupId))
 			}
 		} else {
-			marshal, err = json.Marshal(messages.SendMessage(data[3], util.StringToInt64(data[1]), util.StringToInt64(data[2])))
+			marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId))
 		}
 		if err != nil {
 			log.Println("json err:", err)
 			return
 		}
-		log.Println("plugin", name, "send msg:", data[3])
-		sendPluginResp(name, string(marshal), data[4])
+		log.Println("plugin", name, "send msg:", data.Data)
+		sendPluginResp(name, string(marshal), string(data.Echo))
 	case "send_poke": //send_poke <userId> <groupId>
-		if dataLen < 3 {
-			log.Println(fmt.Sprintf("[%s] send_poke: args number lass than 3", name))
-			return
-		}
-		log.Println("plugin", name, "send poke:", data[1], data[2])
-		messages.SendPoke(data[1], data[2])
+		log.Println("plugin", name, "send poke:", data.UserId, data.GroupId)
+		messages.SendPoke(data.UserId, data.GroupId)
 	case "send_api": //send_api <api_name> <data> <echo>
-		if dataLen < 4 {
-			log.Println(fmt.Sprintf("[%s] send_api: args number lass than 4", name))
-			return
-		}
-		sendPluginResp(name, string(messages.SendData([]byte(data[2]), data[1], data[3])), data[3])
-	case "register": //register <type> <args>
-		switch data[1] {
+		sendPluginResp(name, string(messages.SendData(data.Data, data.ApiName, data.Echo)), string(data.Echo))
+	case "register": //register <type> <sub_type>
+		switch data.RegisterType {
 		case "message":
 			log.Println(name, "register message")
 			MessagePluginMap = append(MessagePluginMap, name)
-		case "cmd":
-			log.Println(name, "register cmd", data[2])
-			CmdPluginMap[data[2]] = name
+		case "command":
+			log.Println(name, "register cmd", data.SubType)
+			CmdPluginMap[data.SubType] = name
 		case "notice":
-			log.Println(name, "register notice", data[2])
-			NoticePluginMap[data[2]] = append(NoticePluginMap[data[2]], name)
+			log.Println(name, "register notice", data.SubType)
+			NoticePluginMap[data.SubType] = append(NoticePluginMap[data.SubType], name)
 		}
-	case "operator": //operator <target> <operator> <args...>
-		if data[1] == "panel" {
-			pluginSend(name, panelOperator(data[2], data[3:]))
+	case "operator": //operator <api_name> <sub_type> <arguments...>
+		if data.ApiName == "panel" {
+			pluginSend(name, panelOperator(data.SubType, data.Arguments))
 		} else {
 			send := struct {
 				PostType    string   `json:"post_type"`
@@ -82,11 +73,11 @@ func pluginRecv(recvData string, name string) {
 				CommandArgs []string `json:"command_args"`
 			}{
 				PostType:    "operator",
-				MessageType: data[2],
+				MessageType: data.SubType,
 				SubType:     name,
-				CommandArgs: data[3:],
+				CommandArgs: data.Arguments,
 			}
-			pluginSend(data[1], send)
+			pluginSend(data.ApiName, send)
 		}
 	}
 }

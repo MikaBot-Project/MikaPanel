@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func SendData(sendParams []byte, api string, echo string) []byte {
+func SendData(sendParams []byte, api string, echo []byte) []byte {
 	send := struct {
 		Action string `json:"action"`
 		Params string `json:"params"`
@@ -18,9 +18,10 @@ func SendData(sendParams []byte, api string, echo string) []byte {
 	}{
 		Action: api,
 		Params: "p",
-		Echo:   echo,
+		Echo:   "e",
 	}
 	data, _ := json.Marshal(send)
+	data = bytes.Replace(data, []byte("\"e\""), echo, 1)
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, 1)
 	SendChan <- data
 	defer sendRecvMap.Delete(send.Echo)
@@ -33,7 +34,7 @@ func SendData(sendParams []byte, api string, echo string) []byte {
 }
 
 func SendApi(sendParams []byte, api string) []byte {
-	return SendData(sendParams, api, util.RandomString(64))
+	return SendData(sendParams, api, []byte("\""+util.RandomString(64)+"\""))
 }
 
 func sendMsg(data any, api string) (messageId int32) {
@@ -114,18 +115,18 @@ func SendGroupMessage[T string | []MessageItem](msg T, groupId int64) (messageId
 	return sendMsg(data, "send_group_msg")
 }
 
-func SendPoke(userId, groupId string) {
-	if groupId == "0" {
+func SendPoke(userId, groupId int64) {
+	if groupId == 0 {
 		data := struct {
-			UserId   string `json:"user_id"`
-			TargetId string `json:"target_id"`
+			UserId   int64 `json:"user_id"`
+			TargetId int64 `json:"target_id"`
 		}{userId, userId}
 		send, _ := json.Marshal(data)
 		SendApi(send, "friend_poke")
 	} else {
 		data := struct {
-			GroupId string `json:"group_id"`
-			UserId  string `json:"user_id"`
+			GroupId int64 `json:"group_id"`
+			UserId  int64 `json:"user_id"`
 		}{groupId, userId}
 		send, _ := json.Marshal(data)
 		SendApi(send, "group_poke")
