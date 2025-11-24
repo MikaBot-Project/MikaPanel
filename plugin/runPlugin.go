@@ -34,7 +34,7 @@ func RunPlugin(ctx context.Context, name string) {
 	logReader, logWriter := io.Pipe()
 	logOutBuffer := bufio.NewReader(logReader)
 	outBuffer := bufio.NewReader(outReader)
-	pluginInBufferMap[name] = bufio.NewWriter(inWriter)
+	pluginInBufferMap.Set(name, bufio.NewWriter(inWriter))
 	pluginInMutexMap[name] = new(sync.Mutex)
 	logWriters := io.MultiWriter(logFile, logWriter)
 	cmdArgs := []string{"./plugin/" + name, "./config/" + name + "/", "./data/" + name + "/"}
@@ -80,7 +80,7 @@ func RunPlugin(ctx context.Context, name string) {
 				log.Println("plugin stoping")
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
-				delete(pluginInBufferMap, name)
+				pluginInBufferMap.Delete(name)
 				unRegister(name)
 				cancel()
 				StatusMap[name] = "stopped"
@@ -95,7 +95,7 @@ func RunPlugin(ctx context.Context, name string) {
 				mutex := pluginInMutexMap[name]
 				mutex.Lock()
 				inReader, inWriter = io.Pipe()
-				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
+				pluginInBufferMap.Set(name, bufio.NewWriter(inWriter))
 				ctxCmd, cancel = context.WithCancel(ctx)
 				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
@@ -120,7 +120,7 @@ func RunPlugin(ctx context.Context, name string) {
 				time.Sleep(2 * time.Second)
 				ctxCmd, cancel = context.WithCancel(ctx)
 				inReader, inWriter = io.Pipe()
-				pluginInBufferMap[name] = bufio.NewWriter(inWriter)
+				pluginInBufferMap.Set(name, bufio.NewWriter(inWriter))
 				cmd = exec.CommandContext(ctxCmd, cmdArgs[0], cmdArgs[1:]...)
 				cmd.Stdout = outWriter
 				cmd.Stderr = logWriters
@@ -149,7 +149,7 @@ func cmdErrListener(name string, cmd *exec.Cmd, cmdCtx context.Context) {
 	}
 	mutex := pluginInMutexMap[name]
 	mutex.Lock()
-	delete(pluginInBufferMap, name)
+	pluginInBufferMap.Delete(name)
 	unRegister(name)
 	StatusMap[name] = "stopped"
 	mutex.Unlock()
@@ -170,11 +170,12 @@ func unRegister(name string) {
 			}
 		}
 	}
-	for k, n := range CmdPluginMap {
+	CmdPluginMap.Range(func(k string, n string) bool {
 		if n == name {
-			delete(CmdPluginMap, k)
+			CmdPluginMap.Delete(k)
 		}
-	}
+		return true
+	})
 }
 
 func StopPlugin(name string) {

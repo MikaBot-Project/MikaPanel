@@ -24,7 +24,7 @@ func (m *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Plugins map[string]string   `json:"plugins"`
 		}{
 			Message: plugin.MessagePluginMap,
-			Command: plugin.CmdPluginMap,
+			Command: plugin.CmdPluginMap.GetMap(),
 			Notice:  plugin.NoticePluginMap,
 			Plugins: plugin.StatusMap,
 		}

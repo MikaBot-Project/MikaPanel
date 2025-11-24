@@ -35,6 +35,11 @@ var config = struct {
 }
 
 func init() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
 	LoadConfig()
 }
 

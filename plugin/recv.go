@@ -19,6 +19,11 @@ type dataType struct {
 }
 
 func pluginRecv(recvData []byte, name string) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
 	var data dataType
 	err := json.Unmarshal(recvData, &data)
 	if err != nil {
@@ -57,7 +62,7 @@ func pluginRecv(recvData []byte, name string) {
 			MessagePluginMap = append(MessagePluginMap, name)
 		case "command":
 			log.Println(name, "register cmd", data.SubType)
-			CmdPluginMap[data.SubType] = name
+			CmdPluginMap.Set(data.SubType, name)
 		case "notice":
 			log.Println(name, "register notice", data.SubType)
 			NoticePluginMap[data.SubType] = append(NoticePluginMap[data.SubType], name)

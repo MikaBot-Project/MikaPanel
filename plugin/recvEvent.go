@@ -30,7 +30,7 @@ func RecvEvent(data messages.Event) {
 						break
 					}
 				}
-				name, ok := CmdPluginMap[cmd]
+				name, ok := CmdPluginMap.Get(cmd)
 				if ok {
 					data.PostType = "command"
 					data.CommandArgs = args
@@ -120,9 +120,9 @@ func RecvEvent(data messages.Event) {
 						config.AdminId, 0)
 				}
 			case "add":
+				data.PostType = "notice"
+				data.NoticeType = "group_add"
 				for _, name := range NoticePluginMap["group_add"] {
-					data.PostType = "notice"
-					data.NoticeType = "group_add"
 					if pluginPolicyCheck(name, int(data.GroupId)) {
 						pluginSend(name, data)
 					}
@@ -133,6 +133,13 @@ func RecvEvent(data messages.Event) {
 		switch data.MetaEventType {
 		case "lifecycle":
 			selfId = data.SelfId
+			data.PostType = "notice"
+			data.NoticeType = "lifecycle"
+			for _, name := range NoticePluginMap["lifecycle"] {
+				if pluginPolicyCheck(name, int(data.GroupId)) {
+					pluginSend(name, data)
+				}
+			}
 			log.Println("bot连接成功 ", data.SubType)
 		case "heartbeat":
 			selfId = data.SelfId

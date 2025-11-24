@@ -81,6 +81,11 @@ var RecvChan chan []byte
 var sendRecvMap *util.SafeMap[[]byte]
 
 func init() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
 	EventChan = make(chan Event, 10)
 	SendChan = make(chan []byte, 10)
 	RecvChan = make(chan []byte, 10)

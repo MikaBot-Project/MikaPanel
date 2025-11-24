@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"MikaPanel/util"
 	"bufio"
 	"context"
 	"encoding/json"
@@ -11,11 +12,11 @@ import (
 	"syscall"
 )
 
-var pluginInBufferMap map[string]*bufio.Writer
+var pluginInBufferMap *util.SafeMap[*bufio.Writer]
 var pluginInMutexMap map[string]*sync.Mutex
 
 var MessagePluginMap []string
-var CmdPluginMap map[string]string
+var CmdPluginMap *util.SafeMap[string]
 var NoticePluginMap map[string][]string
 var StatusMap map[string]string
 
@@ -34,10 +35,10 @@ type intelMessage struct {
 func init() {
 	selfId = 0
 	log.SetPrefix("[main] ")
-	CmdPluginMap = make(map[string]string)
+	CmdPluginMap = util.NewSafeMap[string]()
 	NoticePluginMap = make(map[string][]string)
 	StatusMap = make(map[string]string)
-	pluginInBufferMap = make(map[string]*bufio.Writer)
+	pluginInBufferMap = util.NewSafeMap[*bufio.Writer]()
 	pluginInMutexMap = make(map[string]*sync.Mutex)
 	pluginOperatorChanMap = make(map[string]chan operator)
 	dirInfo, err := os.Stat("plugin")
@@ -80,6 +81,11 @@ func init() {
 	}()
 	for _, file := range files { //启动插件线程
 		go func() {
+			defer func() {
+				if e := recover(); e != nil {
+					log.Println(e)
+				}
+			}()
 			name := file.Name()
 			RunPlugin(ctx, name)
 		}()
@@ -100,7 +106,7 @@ func pluginSend(name string, data interface{}) {
 	mutex := pluginInMutexMap[name]
 	mutex.Lock()
 	defer mutex.Unlock()
-	var writer, ok = pluginInBufferMap[name]
+	var writer, ok = pluginInBufferMap.Get(name)
 	if !ok {
 		return
 	}

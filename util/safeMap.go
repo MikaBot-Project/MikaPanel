@@ -28,6 +28,12 @@ func (sm *SafeMap[T]) Get(key string) (T, bool) {
 	return value, exists
 }
 
+func (sm *SafeMap[T]) GetMap() map[string]T {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.data
+}
+
 // Delete 删除操作
 func (sm *SafeMap[T]) Delete(key string) {
 	sm.mu.Lock()
