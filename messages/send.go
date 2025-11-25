@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func SendData(sendParams []byte, api string, echo []byte) []byte {
+func SendData(sendParams []byte, api string, echo []byte, selfId int64) []byte {
 	send := struct {
 		Action string `json:"action"`
 		Params string `json:"params"`
@@ -23,7 +23,7 @@ func SendData(sendParams []byte, api string, echo []byte) []byte {
 	data, _ := json.Marshal(send)
 	data = bytes.Replace(data, []byte("\"e\""), echo, 1)
 	data = bytes.Replace(data, []byte("\"p\""), sendParams, 1)
-	SendChan <- data
+	SendChan[selfId] <- data
 	defer sendRecvMap.Delete(string(echo))
 	var exists = false
 	for !exists {
@@ -33,17 +33,17 @@ func SendData(sendParams []byte, api string, echo []byte) []byte {
 	return data
 }
 
-func SendApi(sendParams []byte, api string) []byte {
-	return SendData(sendParams, api, []byte("\""+util.RandomString(64)+"\""))
+func SendApi(sendParams []byte, api string, selfId int64) []byte {
+	return SendData(sendParams, api, []byte("\""+util.RandomString(64)+"\""), selfId)
 }
 
-func sendMsg(data any, api string) (messageId int32) {
+func sendMsg(data any, api string, selfId int64) (messageId int32) {
 	var send []byte
 	send, err := json.Marshal(data)
 	if err != nil {
 		return 0
 	}
-	respData := SendApi(send, api)
+	respData := SendApi(send, api, selfId)
 	var respDataStruct sendMessageResponse
 	err = json.Unmarshal(respData, &respDataStruct)
 	if err != nil {
@@ -52,7 +52,7 @@ func sendMsg(data any, api string) (messageId int32) {
 	return int32(respDataStruct.Data.MessageId)
 }
 
-func SendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (messageId []int32) {
+func SendMessage[T string | []MessageItem](msg T, userId int64, groupId int64, selfId int64) (messageId []int32) {
 	message := any(msg)
 	res := make([]int32, 0)
 	switch message.(type) {
@@ -63,7 +63,7 @@ func SendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (
 			switch messageItem.Type {
 			case "record", "file", "video", "image":
 				if i > start {
-					res = append(res, sendMessage(message.([]MessageItem)[start:i], userId, groupId))
+					res = append(res, sendMessage(message.([]MessageItem)[start:i], userId, groupId, selfId))
 				}
 				if messageItem.GetString("url") == "" {
 					file := messageItem.GetString("file")
@@ -79,56 +79,56 @@ func SendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (
 					}
 				}
 				start = i + 1
-				res = append(res, sendMessage(message.([]MessageItem)[i:start], userId, groupId))
+				res = append(res, sendMessage(message.([]MessageItem)[i:start], userId, groupId, selfId))
 			}
 		}
 		if start != length {
-			res = append(res, sendMessage(message.([]MessageItem)[start:], userId, groupId))
+			res = append(res, sendMessage(message.([]MessageItem)[start:], userId, groupId, selfId))
 		}
 	case string:
-		res = append(res, sendMessage(msg, userId, groupId))
+		res = append(res, sendMessage(msg, userId, groupId, selfId))
 	}
 	return res
 }
 
-func sendMessage[T string | []MessageItem](msg T, userId int64, groupId int64) (messageId int32) {
+func sendMessage[T string | []MessageItem](msg T, userId int64, groupId int64, selfId int64) (messageId int32) {
 	if groupId == 0 {
-		return SendPrivateMessage(msg, userId)
+		return SendPrivateMessage(msg, userId, selfId)
 	} else {
-		return SendGroupMessage(msg, groupId)
+		return SendGroupMessage(msg, groupId, selfId)
 	}
 }
 
-func SendPrivateMessage[T string | []MessageItem](msg T, userId int64) (messageId int32) {
+func SendPrivateMessage[T string | []MessageItem](msg T, userId int64, selfId int64) (messageId int32) {
 	data := struct {
 		UserId  int64 `json:"user_id"`
 		Message T     `json:"message"`
 	}{userId, msg}
-	return sendMsg(data, "send_private_msg")
+	return sendMsg(data, "send_private_msg", selfId)
 }
 
-func SendGroupMessage[T string | []MessageItem](msg T, groupId int64) (messageId int32) {
+func SendGroupMessage[T string | []MessageItem](msg T, groupId int64, selfId int64) (messageId int32) {
 	data := struct {
 		GroupId int64 `json:"group_id"`
 		Message T     `json:"message"`
 	}{groupId, msg}
-	return sendMsg(data, "send_group_msg")
+	return sendMsg(data, "send_group_msg", selfId)
 }
 
-func SendPoke(userId, groupId int64) {
+func SendPoke(userId, groupId int64, selfId int64) {
 	if groupId == 0 {
 		data := struct {
 			UserId   int64 `json:"user_id"`
 			TargetId int64 `json:"target_id"`
 		}{userId, userId}
 		send, _ := json.Marshal(data)
-		SendApi(send, "friend_poke")
+		SendApi(send, "friend_poke", selfId)
 	} else {
 		data := struct {
 			GroupId int64 `json:"group_id"`
 			UserId  int64 `json:"user_id"`
 		}{groupId, userId}
 		send, _ := json.Marshal(data)
-		SendApi(send, "group_poke")
+		SendApi(send, "group_poke", selfId)
 	}
 }

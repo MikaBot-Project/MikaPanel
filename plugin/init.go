@@ -72,6 +72,7 @@ func init() {
 		syscall.SIGINT,  // Ctrl+C
 		syscall.SIGTERM, // 终止信号
 		syscall.SIGQUIT, // 退出信号
+		syscall.SIGSEGV,
 	)
 	go func() {
 		<-sigChan

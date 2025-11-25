@@ -16,20 +16,22 @@ const (
 )
 
 type SocketHandler struct {
+	selfId int64
 }
 
 func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 	_ = socket.SetDeadline(time.Now().Add(PingInterval + PingWait))
+	messages.SendChan[c.selfId] = make(chan []byte, 5)
 	var i = 0
 	for i < config.SendThreadCount {
 		go func() { //发送数据
 			var data []byte
 			for {
-				data = <-messages.SendChan
+				data = <-messages.SendChan[c.selfId]
 				err := socket.WriteMessage(gws.OpcodeText, data)
 				if err != nil {
 					log.Println("Send data err:", err)
-					messages.SendChan <- data
+					messages.SendChan[c.selfId] <- data
 					_ = socket.WriteClose(1000, nil)
 					return
 				}
@@ -50,6 +52,7 @@ func (c *SocketHandler) OnOpen(socket *gws.Conn) {
 }
 
 func (c *SocketHandler) OnClose(socket *gws.Conn, err error) {
+	delete(messages.SendChan, c.selfId)
 	log.Println("websocket close with err:", err)
 }
 

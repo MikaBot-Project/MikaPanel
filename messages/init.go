@@ -76,7 +76,7 @@ type sendMessageResponse struct {
 }
 
 var EventChan chan Event
-var SendChan chan []byte
+var SendChan map[int64]chan []byte
 var RecvChan chan []byte
 var sendRecvMap *util.SafeMap[[]byte]
 
@@ -87,8 +87,8 @@ func init() {
 		}
 	}()
 	EventChan = make(chan Event, 10)
-	SendChan = make(chan []byte, 10)
 	RecvChan = make(chan []byte, 10)
+	SendChan = make(map[int64]chan []byte)
 	sendRecvMap = util.NewSafeMap[[]byte]()
 	go func() {
 		var data []byte

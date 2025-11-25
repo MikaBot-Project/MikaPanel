@@ -10,6 +10,7 @@ type dataType struct {
 	Action       string   `json:"action"`
 	Echo         []byte   `json:"echo"`
 	UserId       int64    `json:"user_id"`
+	SelfId       int64    `json:"self_id"`
 	GroupId      int64    `json:"group_id"`
 	ApiName      string   `json:"api_name"`
 	Data         []byte   `json:"data"`
@@ -30,6 +31,9 @@ func pluginRecv(recvData []byte, name string) {
 		log.Println(err.Error())
 		return
 	}
+	if data.SelfId == 0 {
+		data.SelfId = selfId
+	}
 	switch data.Action {
 	case "send_msg": //send_msg <userId> <groupId> <data> <sub_type> <echo>
 		var marshal []byte
@@ -37,12 +41,12 @@ func pluginRecv(recvData []byte, name string) {
 			var msg []messages.MessageItem
 			err = json.Unmarshal(data.Data, &msg)
 			if err != nil {
-				marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId))
+				marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId, data.SelfId))
 			} else {
-				marshal, err = json.Marshal(messages.SendMessage(msg, data.UserId, data.GroupId))
+				marshal, err = json.Marshal(messages.SendMessage(msg, data.UserId, data.GroupId, data.SelfId))
 			}
 		} else {
-			marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId))
+			marshal, err = json.Marshal(messages.SendMessage(string(data.Data), data.UserId, data.GroupId, data.SelfId))
 		}
 		if err != nil {
 			log.Println("json err:", err)
@@ -52,9 +56,9 @@ func pluginRecv(recvData []byte, name string) {
 		sendPluginResp(name, string(marshal), string(data.Echo))
 	case "send_poke": //send_poke <userId> <groupId>
 		log.Println("plugin", name, "send poke:", data.UserId, data.GroupId)
-		messages.SendPoke(data.UserId, data.GroupId)
+		messages.SendPoke(data.UserId, data.GroupId, data.SelfId)
 	case "send_api": //send_api <api_name> <data> <echo>
-		sendPluginResp(name, string(messages.SendData(data.Data, data.ApiName, data.Echo)), string(data.Echo))
+		sendPluginResp(name, string(messages.SendData(data.Data, data.ApiName, data.Echo, data.SelfId)), string(data.Echo))
 	case "register": //register <type> <sub_type>
 		switch data.RegisterType {
 		case "message":

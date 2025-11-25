@@ -2,6 +2,7 @@ package web
 
 import (
 	"MikaPanel/config"
+	"MikaPanel/util"
 	"log"
 	"net/http"
 
@@ -9,15 +10,16 @@ import (
 )
 
 var Mux *http.ServeMux
-var upgrader *gws.Upgrader
 
 func init() {
 	Mux = http.NewServeMux()
-	upgrader = gws.NewUpgrader(&SocketHandler{}, &gws.ServerOption{
-		ParallelEnabled: true,
-		Recovery:        gws.Recovery,
-	})
 	Mux.HandleFunc("/onebot/v11", func(writer http.ResponseWriter, request *http.Request) {
+		upgrader := gws.NewUpgrader(&SocketHandler{
+			selfId: util.StringToInt64(request.Header.Get("X-Self-ID")),
+		}, &gws.ServerOption{
+			ParallelEnabled: true,
+			Recovery:        gws.Recovery,
+		})
 		conn, err := upgrader.Upgrade(writer, request)
 		if err != nil {
 			log.Println(err)

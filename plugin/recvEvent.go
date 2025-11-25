@@ -70,13 +70,13 @@ func RecvEvent(data messages.Event) {
 					Remark  string `json:"remark"`
 				}{Flag: data.Flag, Approve: true, Remark: ""}
 				bytes, _ := json.Marshal(send)
-				messages.SendApi(bytes, "set_friend_add_request")
+				messages.SendApi(bytes, "set_friend_add_request", data.SelfId)
 			} else {
 				send := struct {
 					UserId int64 `json:"user_id"`
 				}{UserId: data.UserId}
 				bytes, _ := json.Marshal(send)
-				bytes = messages.SendApi(bytes, "get_stranger_info")
+				bytes = messages.SendApi(bytes, "get_stranger_info", data.SelfId)
 				recv := struct {
 					Data struct {
 						Nickname string `json:"nickname"`
@@ -87,7 +87,7 @@ func RecvEvent(data messages.Event) {
 				if err != nil {
 					return
 				}
-				messages.SendMessage(recv.Data.Nickname+" "+util.Int64ToString(data.UserId)+"请求添加为好友", config.AdminId, 0)
+				messages.SendMessage(recv.Data.Nickname+" "+util.Int64ToString(data.UserId)+"请求添加为好友", config.AdminId, 0, data.SelfId)
 			}
 		case "group":
 			switch data.SubType {
@@ -99,13 +99,13 @@ func RecvEvent(data messages.Event) {
 						Reason  string `json:"reason"`
 					}{Flag: data.Flag, Approve: true, Reason: ""}
 					bytes, _ := json.Marshal(send)
-					messages.SendApi(bytes, "set_group_add_request")
+					messages.SendApi(bytes, "set_group_add_request", data.SelfId)
 				} else {
 					send := struct {
 						UserId int64 `json:"user_id"`
 					}{UserId: data.UserId}
 					bytes, _ := json.Marshal(send)
-					bytes = messages.SendApi(bytes, "get_stranger_info")
+					bytes = messages.SendApi(bytes, "get_stranger_info", data.SelfId)
 					recv := struct {
 						Data struct {
 							Nickname string `json:"nickname"`
@@ -117,7 +117,7 @@ func RecvEvent(data messages.Event) {
 						return
 					}
 					messages.SendMessage(recv.Data.Nickname+" "+util.Int64ToString(data.UserId)+"请求拉入群聊"+util.Int64ToString(data.GroupId),
-						config.AdminId, 0)
+						config.AdminId, 0, data.SelfId)
 				}
 			case "add":
 				data.PostType = "notice"
